@@ -34,9 +34,25 @@ class SiteHeader extends HTMLElement {
 
             <a role="menuitem" href="/watch/">Watch</a>
             <a role="menuitem" href="/contact/">Contact</a>
+
+            <!-- THEME TOGGLE -->
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme"></button>
           </div>
         </nav>
       </header>`;
+    const btn = this.querySelector('#theme-toggle');
+    const setIcon = () => {
+      const dark = document.documentElement.classList.contains('theme-dark');
+      btn.textContent = dark ? '☀️' : '🌙';
+      btn.title = dark ? 'Switch to light' : 'Switch to dark';
+    };
+    btn.addEventListener('click', () => {
+      const el = document.documentElement;
+      const dark = el.classList.toggle('theme-dark');
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+      setIcon();
+    });
+    setIcon();
   }
 }
 customElements.define('site-header', SiteHeader);
