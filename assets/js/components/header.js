@@ -1,4 +1,11 @@
 
+// Theme loader: apply saved theme as early as possible
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'dark') {
+  document.documentElement.classList.add('theme-dark');
+}
+
+
 class SiteHeader extends HTMLElement {
   connectedCallback() { this.render(); }
   render() {

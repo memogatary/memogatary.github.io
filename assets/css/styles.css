@@ -1,5 +1,16 @@
 
+/* Default theme = Light */
 :root {
+  --bg: #ffffff;
+  --fg: #0f172a;   /* near-black text */
+  --muted: #475569;
+  --accent: #2563eb;
+  --card: #ffffff;
+  --border: #e5e7eb;
+}
+
+/* Dark theme (enabled when .theme-dark class is on <html>) */
+:root.theme-dark {
   --bg: #0b0b0d;
   --fg: #e7e7ea;
   --muted: #a6a6ad;
