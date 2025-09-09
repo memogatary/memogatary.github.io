@@ -1,12 +1,28 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Memogatary</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+  <script type="module" src="/assets/js/components/header.js"></script>
+  <script type="module" src="/assets/js/components/footer.js"></script>
 </head>
 <body>
-  <h1>Hello, world 👋</h1>
-  <p>This is my first GitHub Pages site.</p>
+  <site-header></site-header>
+  <main class="container prose">
+    <div class="card">
+      <h1>Memogatary</h1>
+      <p>Gom những mảnh ký ức thành câu chuyện — science, languages, and making things in public.</p>
+    </div>
+
+    <h2>Fresh on the site</h2>
+    <div class="grid cols-3">
+      <div class="card"><strong>Blog (VI)</strong><p><a href="/blog/vi/">Latest Vietnamese posts</a></p></div>
+      <div class="card"><strong>Blog (EN)</strong><p><a href="/blog/en/">Latest English posts</a></p></div>
+      <div class="card"><strong>Chinese</strong><p><a href="/languages/chinese/">HSK cards & notes</a></p></div>
+    </div>
+  </main>
+  <site-footer-newsletter></site-footer-newsletter>
 </body>
 </html>

@@ -1,0 +1,1 @@
+class SiteFooter extends HTMLElement {connectedCallback(){this.innerHTML='<footer>Footer</footer>';}};customElements.define('site-footer',SiteFooter);

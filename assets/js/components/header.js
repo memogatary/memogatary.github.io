@@ -1,0 +1,1 @@
+class SiteHeader extends HTMLElement {connectedCallback(){this.innerHTML='<header>Header</header>';}};customElements.define('site-header',SiteHeader);
