@@ -145,18 +145,48 @@ table { width: 100%; max-width: 100%; overflow-x: auto; display: block; }
 .site-footer .row.two { grid-template-columns: 1fr 1fr; }
 .site-footer a { color: var(--fg); text-decoration: none; }
 
-
-/* Newsletter */
-.newsletter { display:flex; gap: 10px; }
-.newsletter input[type=email] {
-  flex:1; padding: 10px 12px;
-  background: var(--card);               /* light in light theme, dark in dark theme */
-  color: var(--fg);
-  border: 1px solid var(--border); border-radius: 10px;
+/* Footer grid fix for mobile */
+@media (max-width: 720px) {
+  .site-footer .row.two { grid-template-columns: 1fr; }
 }
 
-.newsletter button { padding: 10px 14px; border-radius: 10px; background: var(--accent); color: #0a0a0a; border:none; cursor:pointer; font-weight: 600; }
+
+/* Newsletter */
+.newsletter {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;   /* allow button to move to next line */
+}
+
+.newsletter input[type=email] {
+  flex: 1 1 240px;   /* grow but can shrink */
+  min-width: 0;      /* prevents overflow */
+  padding: 10px 12px;
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.newsletter button {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #0a0a0a;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
 .newsletter button:hover { filter: brightness(1.05); }
+
+/* On very narrow phones, button full width */
+@media (max-width: 420px) {
+  .newsletter button { width: 100%; }
+}
+
 
 /* Main content helpers */
 .prose h1 { font-size: 32px; margin: 18px 0 12px; }
