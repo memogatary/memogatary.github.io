@@ -57,6 +57,12 @@ body {
   color: var(--fg);
   vertical-align: middle;
 }
+.theme-control {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* smaller spacing between label + icon */
+}
+
 
 /* Dropdown */
 .dropdown { position: relative; }
