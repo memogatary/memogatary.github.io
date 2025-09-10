@@ -63,6 +63,36 @@ body {
 .menu a, .menu button { color: var(--fg); text-decoration:none; background:none; border:none; padding:10px 12px; border-radius: 10px; cursor:pointer; font: inherit; }
 .menu a:hover, .menu button:hover { background: var(--card); }
 
+/* Mobile safety + responsive fixes */
+html, body { overflow-x: hidden; }
+img, video, canvas, svg { max-width: 100%; height: auto; }
+pre { max-width: 100%; overflow: auto; }
+table { width: 100%; max-width: 100%; overflow-x: auto; display: block; }
+
+/* Let nav and menu wrap if space is tight */
+.nav { flex-wrap: wrap; }
+.menu { flex-wrap: wrap; }
+
+/* On small screens, tighten spacing */
+@media (max-width: 720px) {
+  .container { padding: 16px; }                 /* was 24px */
+  .nav { gap: 8px; padding: 10px 12px; }
+  .menu { gap: 8px; }
+  .menu a, .menu button { padding: 8px 10px; }
+  .brand { flex: 1 1 100%; }                     /* brand gets its own row */
+  .theme-toggle { padding: 6px 10px; gap: 6px; } /* compact pill */
+}
+
+/* Keep dropdowns inside viewport */
+.dropdown-panel {
+  max-width: min(92vw, 320px);
+  overflow-wrap: anywhere;
+}
+.dropdown:last-child .dropdown-panel {
+  right: 0; left: auto;
+}
+
+
 /* Filled pill theme toggle */
 .theme-toggle {
   display:flex; align-items:center; gap: 8px;
