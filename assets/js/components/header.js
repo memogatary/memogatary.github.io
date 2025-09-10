@@ -36,6 +36,7 @@ class SiteHeader extends HTMLElement {
             <a role="menuitem" href="/contact/">Contact</a>
 
             <!-- THEME TOGGLE -->
+            <span class="theme-label">Theme:</span>
             <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme"></button>
           </div>
         </nav>

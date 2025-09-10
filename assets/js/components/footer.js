@@ -7,7 +7,7 @@ class SiteFooter extends HTMLElement {
       <footer class="site-footer">
         <div class="container row">
           <div>© ${year} Memogatary · <a href="/about/">About</a></div>
-          <div>Living fully through curiosity, learning, and stories.<a href="/contact/">Say hi</a>.</div>
+          <div>Living fully through curiosity, learning, and stories. <a href="/contact/">Say hi</a>.</div>
         </div>
       </footer>`;
   }

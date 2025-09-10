@@ -51,7 +51,12 @@ body {
   font: inherit;
 }
 .theme-toggle:hover { filter: brightness(1.05); }
-
+.theme-label {
+  margin-right: 6px;
+  font-size: 0.9em;
+  color: var(--fg);
+  vertical-align: middle;
+}
 
 /* Dropdown */
 .dropdown { position: relative; }
