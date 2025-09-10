@@ -37,7 +37,6 @@ class SiteHeader extends HTMLElement {
 
             <!-- THEME TOGGLE -->
             <div class="theme-control">
-              <span class="theme-label">Theme:</span>
               <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme"></button>
             </div>
           </div>
@@ -46,7 +45,7 @@ class SiteHeader extends HTMLElement {
     const btn = this.querySelector('#theme-toggle');
     const setIcon = () => {
       const dark = document.documentElement.classList.contains('theme-dark');
-      btn.textContent = dark ? '☀️' : '🌙';
+      btn.textContent = dark ? 'Theme: Dark ☀️' : 'Theme: Light 🌙';
       btn.title = dark ? 'Switch to light' : 'Switch to dark';
     };
     btn.addEventListener('click', () => {

@@ -45,11 +45,15 @@ body {
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--fg);
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-radius: 10px;
   cursor: pointer;
   font: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px; /* spacing between text and icon */
 }
+
 .theme-toggle:hover { filter: brightness(1.05); }
 .theme-label {
   margin-right: 6px;
