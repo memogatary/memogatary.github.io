@@ -18,6 +18,20 @@
   --card: #141418;
   --border: #2a2a33;
 }
+/* Subtle surfaces & pill colors that adapt to theme */
+:root {
+  --surface-1: color-mix(in srgb, var(--fg) 6%,  var(--bg));
+  --surface-2: color-mix(in srgb, var(--fg) 12%, var(--bg));
+  --pill-bg:   color-mix(in srgb, var(--accent) 18%, var(--card));
+  --pill-bd:   color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+:root.theme-dark {
+  --surface-1: color-mix(in srgb, var(--fg) 8%,  var(--bg));
+  --surface-2: color-mix(in srgb, var(--fg) 14%, var(--bg));
+  --pill-bg:   color-mix(in srgb, var(--accent) 22%, var(--card));
+  --pill-bd:   color-mix(in srgb, var(--accent) 32%, var(--border));
+}
+
 * { box-sizing: border-box; }
 html, body { margin:0; padding:0; }
 body {
@@ -25,14 +39,21 @@ body {
   background: var(--bg); color: var(--fg); line-height: 1.6;
 }
 .container { max-width: 1000px; margin: 0 auto; padding: 24px; }
-.card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 12px color-mix(in srgb, var(--fg) 6%, transparent);
+}
+
 
 /* Header */
 .site-header {
   position: sticky; top: 0; z-index: 50;
   backdrop-filter: blur(8px);
-  background: var(--bg);                 /* follow theme */
-  border-bottom: 1px solid var(--border);
+  background: var(--surface-1); /* subtle tinted surface */
+  border-bottom: 1px solid color-mix(in srgb, var(--fg) 10%, var(--bg));
 }
 
 .nav { display:flex; align-items:center; justify-content:space-between; gap: 16px; padding: 14px 20px; }
@@ -41,31 +62,34 @@ body {
 .menu { display:flex; gap: 14px; align-items:center; }
 .menu a, .menu button { color: var(--fg); text-decoration:none; background:none; border:none; padding:10px 12px; border-radius: 10px; cursor:pointer; font: inherit; }
 .menu a:hover, .menu button:hover { background: var(--card); }
+
+/* Filled pill theme toggle */
 .theme-toggle {
-  border: 1px solid var(--border);
-  background: var(--card);
+  display:flex; align-items:center; gap: 8px;
+  padding: 6px 12px;
+  background: var(--pill-bg);
   color: var(--fg);
-  padding: 6px 10px;
-  border-radius: 10px;
+  border: 1px solid var(--pill-bd);
+  border-radius: 999px;      /* pill */
   cursor: pointer;
   font: inherit;
-  display: flex;
-  align-items: center;
-  gap: 6px; /* spacing between text and icon */
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--fg) 8%, transparent);
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+.theme-toggle:hover {
+  filter: brightness(1.03);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--fg) 10%, transparent);
+}
+.theme-toggle:active { transform: translateY(1px); }
+.theme-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
 }
 
-.theme-toggle:hover { filter: brightness(1.05); }
-.theme-label {
-  margin-right: 6px;
-  font-size: 0.9em;
-  color: var(--fg);
-  vertical-align: middle;
-}
-.theme-control {
-  display: flex;
-  align-items: center;
-  gap: 4px; /* smaller spacing between label + icon */
-}
+/* keep if you still use the wrapper/label */
+.theme-label { margin-right: 6px; font-size: 0.9em; color: var(--fg); vertical-align: middle; }
+.theme-control { display: flex; align-items: center; gap: 4px; }
+
 
 
 /* Dropdown */
@@ -82,14 +106,15 @@ body {
 
 /* Footer */
 .site-footer {
-  border-top: 1px solid var(--border);
-  background: var(--bg);    /* follow theme */
-  color: var(--fg);         /* readable in light mode */
+  border-top: 1px solid color-mix(in srgb, var(--fg) 10%, var(--bg));
+  background: var(--surface-1);  /* match header surface */
+  color: var(--fg);
   padding: 24px 20px;
 }
 .site-footer .row { display:grid; grid-template-columns: 1fr; gap: 12px; }
 .site-footer .row.two { grid-template-columns: 1fr 1fr; }
 .site-footer a { color: var(--fg); text-decoration: none; }
+
 
 /* Newsletter */
 .newsletter { display:flex; gap: 10px; }
