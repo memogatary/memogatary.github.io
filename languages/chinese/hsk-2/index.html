@@ -1,294 +1,364 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-  <title>HSK 2.0 Vocabulary · Chinese · Memogatary</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="/favicon.png" type="image/png" />
-  <link rel="stylesheet" href="/assets/css/styles.css" />
-  <script type="module" src="/assets/js/components/header.js"></script>
-  <script type="module" src="/assets/js/components/footer.js"></script>
-  <!-- Tailwind for PDF viewer layout helpers -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    #pdf-viewer canvas { max-width: 100%; height: auto; border: 1px solid #ddd; }
-    #pdf-nav button:disabled { opacity: .5; cursor: not-allowed; }
-  </style>
+    <title>HSK 2.0 Vocabulary · Chinese · Memogatary</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/assets/css/styles.css" />
+    <script type="module" src="/assets/js/components/header.js"></script>
+    <script type="module" src="/assets/js/components/footer.js"></script>
+    <!-- Tailwind for PDF viewer layout helpers -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #pdf-viewer canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+        }
+
+        #pdf-nav button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
+
 <body>
-  <site-header></site-header>
+    <site-header></site-header>
 
-  <main class="container prose">
-    <h1>HSK 2.0 Vocabulary</h1>
+    <main class="container prose">
+        <h1>HSK 2.0 Vocabulary</h1>
 
-    <!-- Viewer controls -->
-    <div class="max-w-5xl mx-auto my-6">
-      <label class="block text-sm text-slate-600 mb-1">Choose material</label>
-      <select id="pdf-select" class="w-full border rounded p-2"></select>
-      <p id="list-status" class="text-xs text-slate-500 mt-1"></p>
-    </div>
-
-    <!-- Jump to page -->
-    <div class="flex gap-2 items-end my-4">
-      <div>
-        <label class="block text-sm text-slate-600 mb-1">Go to page</label>
-        <input id="goto-input" type="number" min="1" class="border rounded p-2 w-28" />
-      </div>
-      <button id="goto-btn" class="h-10 px-4 rounded bg-indigo-600 text-white">Go</button>
-    </div>
-
-    <!-- PDF Viewer -->
-    <section id="pdf-viewer" class="mt-4">
-      <p id="loading-message" class="text-slate-600">Loading…</p>
-      <div id="pdf-render-area" class="hidden justify-center items-start gap-4 p-2 bg-white rounded-t-lg shadow">
-        <canvas id="pdf-canvas-1"></canvas>
-        <canvas id="pdf-canvas-2"></canvas>
-      </div>
-      <div id="pdf-nav" class="hidden flex gap-3 justify-between items-center p-2 border-t bg-gray-50 rounded-b-lg">
-        <div class="flex gap-2">
-          <button id="prev-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">&lt; Previous</button>
-          <button id="next-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">Next &gt;</button>
+        <!-- Viewer controls -->
+        <div class="max-w-5xl mx-auto my-6">
+            <label class="block text-sm text-slate-600 mb-1">Choose material</label>
+            <select id="pdf-select" class="w-full border rounded p-2"></select>
+            <p id="list-status" class="text-xs text-slate-500 mt-1"></p>
         </div>
-        <span id="page-num-display" class="text-slate-700 font-medium"></span>
-      </div>
-    </section>
-  </main>
 
-  <site-footer></site-footer>
+        <!-- Jump to page -->
+        <div class="flex gap-2 items-end my-4">
+            <div>
+                <label class="block text-sm text-slate-600 mb-1">Go to page</label>
+                <input id="goto-input" type="number" min="1" class="border rounded p-2 w-28" />
+            </div>
+            <button id="goto-btn" class="h-10 px-4 rounded bg-indigo-600 text-white">Go</button>
+        </div>
 
-  <!-- PDF viewer script -->
-  <script>
-    /***** CONFIG *****/
-    const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbxI9QfAigtr23RlCPq_vxQsk7m0fzn6mTL8_DUTtFE8E60SmeeLcJUQCEGj_v6mMb6NTA/exec';
-    const FOLDER_ID = '1fxVRg5zDlf-Zre6uy8ac48C3ILHtaPfF';
-    const VERSION = 'v1'; // bump to bust caches after updates
+        <!-- PDF Viewer -->
+        <section id="pdf-viewer" class="mt-4">
+            <p id="loading-message" class="text-slate-600">Loading…</p>
+            <!-- Progress bar -->
+            <div id="dl-progress" class="hidden mt-3">
+                <div class="w-full bg-gray-200 rounded">
+                    <div id="dl-bar" class="h-2 rounded bg-indigo-600" style="width:0%"></div>
+                </div>
+                <div id="dl-label" class="text-xs text-slate-600 mt-1">0%</div>
+            </div>
+            <div id="pdf-render-area" class="hidden justify-center items-start gap-4 p-2 bg-white rounded-t-lg shadow">
+                <canvas id="pdf-canvas-1"></canvas>
+                <canvas id="pdf-canvas-2"></canvas>
+            </div>
+            <div id="pdf-nav"
+                class="hidden flex gap-3 justify-between items-center p-2 border-t bg-gray-50 rounded-b-lg">
+                <div class="flex gap-2">
+                    <button id="prev-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">&lt;
+                        Previous</button>
+                    <button id="next-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">Next
+                        &gt;</button>
+                </div>
+                <span id="page-num-display" class="text-slate-700 font-medium"></span>
+            </div>
+        </section>
+    </main>
 
-    /* Load PDF.js first, then init */
-    (function loadPdfJs() {
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
-      s.onload = initHSK;
-      s.onerror = () => setStatus('Failed to load PDF.js');
-      document.head.appendChild(s);
-    })();
+    <site-footer></site-footer>
 
-    /* ---- State & refs ---- */
-    let pdfDoc = null;
-    let currentPage = 1;
-    let twoPageMode = true;            // auto: desktop = 2 pages, mobile = 1 page
-    const cache = new Map();           // fileId -> base64 PDF
+    <!-- PDF viewer script -->
+    <script>
+        /***** CONFIG *****/
+        const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbzrhNcVHJlZ73HgcPpFrzQny1afzkMLN1IuLvoHGdIIu715jsazKdO-oSY9H40oCTcUbg/exec';
+        const FOLDER_ID = '1fxVRg5zDlf-Zre6uy8ac48C3ILHtaPfF';
+        const VERSION = 'v1'; // bump to bust caches after updates
+        // Map fileId -> size (from list)
+        const fileSizes = new Map();  // ← NEW
 
-    const $ = (id) => document.getElementById(id);
-    const canvas1 = () => $('pdf-canvas-1');
-    const canvas2 = () => $('pdf-canvas-2');
-    const ctx1    = () => canvas1().getContext('2d');
-    const ctx2    = () => canvas2().getContext('2d');
+        /* Load PDF.js first, then init */
+        (function loadPdfJs() {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+            s.onload = initHSK;
+            s.onerror = () => setStatus('Failed to load PDF.js');
+            document.head.appendChild(s);
+        })();
 
-    function setStatus(msg) {
-        const el = document.getElementById('list-status');
-        if (el) el.textContent = msg;
-    }
-    function setLoading(msg) {
-        const el = document.getElementById('loading-message');
-        if (el) el.textContent = msg;
-    }
-    /* ---- Utilities ---- */
-    function base64ToUint8Array(base64) {
-      const bin = atob(base64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      return bytes;
-    }
+        /* ---- State & refs ---- */
+        let pdfDoc = null;
+        let currentPage = 1;
+        let twoPageMode = true;            // auto: desktop = 2 pages, mobile = 1 page
+        const cache = new Map();           // fileId -> base64 PDF
 
-    function setModeFromViewport() {
-      // <= 768px -> single page; otherwise two-page spread
-      twoPageMode = !window.matchMedia('(max-width: 768px)').matches;
-      canvas2().style.display = twoPageMode ? 'block' : 'none';
-    }
+        const $ = (id) => document.getElementById(id);
+        const canvas1 = () => $('pdf-canvas-1');
+        const canvas2 = () => $('pdf-canvas-2');
+        const ctx1 = () => canvas1().getContext('2d');
+        const ctx2 = () => canvas2().getContext('2d');
 
-    /* ---- Networking ---- */
-    async function fetchList() {
-      const url = `${APPS_SCRIPT_BASE}?mode=list&folderId=${encodeURIComponent(FOLDER_ID)}&v=${VERSION}`;
-      console.log('LIST URL:', url);
-
-      let res, text;
-      try {
-        res = await fetch(url, { cache: 'no-store' });
-        text = await res.text(); // raw for helpful errors
-      } catch (e) {
-        setStatus(`Network error: ${e.message}`);
-        console.error('fetchList network error:', e);
-        throw e;
-      }
-
-      if (!res.ok) {
-        setStatus(`HTTP ${res.status}: ${text.slice(0,200)}`);
-        console.error('fetchList HTTP error:', res.status, text);
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      try {
-        const data = JSON.parse(text);
-        if (data && data.error) {
-          setStatus(`Script error: ${data.error}`);
-          console.error('fetchList script error:', data.error);
-          throw new Error(data.error);
+        function setStatus(msg) {
+            const el = document.getElementById('list-status');
+            if (el) el.textContent = msg;
         }
-        return data; // [{id,name,display,modifiedTime}, ...]
-      } catch (e) {
-        setStatus(`Bad JSON from script: ${text.slice(0,200)}`);
-        console.error('fetchList JSON parse error. Raw:', text);
-        throw e;
-      }
-    }
-
-    async function getPdfBase64(fileId) {
-      if (cache.has(fileId)) return cache.get(fileId);
-      const url = `${APPS_SCRIPT_BASE}?mode=get&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`PDF fetch failed (HTTP ${res.status})`);
-      const b64 = await res.text();
-      cache.set(fileId, b64);
-      return b64;
-    }
-
-    /* ---- Rendering ---- */
-    async function loadAndOpen(fileId) {
-      setLoading('Loading PDF...');
-      const { pdfjsLib } = window;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-
-      const b64 = await getPdfBase64(fileId);
-      const data = base64ToUint8Array(b64);
-      pdfDoc = await pdfjsLib.getDocument({ data }).promise;
-
-      $('loading-message').style.display = 'none';
-      $('pdf-render-area').style.display = 'flex';
-      $('pdf-nav').style.display = 'flex';
-
-      currentPage = 1;
-      await renderPages(currentPage);
-      updateNavButtons();
-    }
-
-    async function renderPages(startPage) {
-      if (!pdfDoc) return;
-      startPage = Math.max(1, Math.min(startPage, pdfDoc.numPages));
-
-      const renderArea = $('pdf-render-area');
-      const style = window.getComputedStyle(renderArea);
-      const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-      const gap = parseFloat(style.gap) || 0;
-      let availableWidth = renderArea.clientWidth - paddingX;
-
-      const page1 = await pdfDoc.getPage(startPage);
-      let totalPdfWidth = page1.getViewport({ scale: 1 }).width;
-
-      let page2 = null;
-      let page2Num = null;
-      if (twoPageMode) {
-        page2Num = startPage + 1;
-        if (page2Num <= pdfDoc.numPages) {
-          availableWidth -= gap;
-          page2 = await pdfDoc.getPage(page2Num);
-          totalPdfWidth += page2.getViewport({ scale: 1 }).width;
+        function setLoading(msg) {
+            const el = document.getElementById('loading-message');
+            if (el) el.textContent = msg;
         }
-      }
-
-      const scale = availableWidth / totalPdfWidth;
-
-      const vp1 = page1.getViewport({ scale });
-      canvas1().width = vp1.width; canvas1().height = vp1.height;
-      await page1.render({ canvasContext: ctx1(), viewport: vp1 }).promise;
-      canvas1().style.display = 'block';
-
-      if (twoPageMode && page2) {
-        const vp2 = page2.getViewport({ scale });
-        canvas2().width = vp2.width; canvas2().height = vp2.height;
-        await page2.render({ canvasContext: ctx2(), viewport: vp2 }).promise;
-        canvas2().style.display = 'block';
-        $('page-num-display').textContent = `Pages ${startPage}–${page2Num} of ${pdfDoc.numPages}`;
-      } else {
-        canvas2().style.display = 'none';
-        $('page-num-display').textContent = `Page ${startPage} of ${pdfDoc.numPages}`;
-      }
-
-      currentPage = startPage;
-    }
-
-    function updateNavButtons() {
-      const prevDisabled = currentPage <= 1;
-      const nextDisabled = twoPageMode
-        ? (currentPage + 1 >= pdfDoc.numPages)
-        : (currentPage >= pdfDoc.numPages);
-      $('prev-page').disabled = prevDisabled;
-      $('next-page').disabled = nextDisabled;
-    }
-    
-    function populateSelect(items) {
-        const sel = document.getElementById('pdf-select');
-        if (!sel) return;
-        sel.innerHTML = '';
-        items.forEach(it => {
-        const opt = document.createElement('option');
-        opt.value = it.id;
-        opt.textContent = it.display || it.name.replace(/\.pdf$/i, '');
-        sel.appendChild(opt);
-        });
-    }
-
-    /* ---- Init & events ---- */
-    async function initHSK() {
-      setModeFromViewport();
-      window.addEventListener('resize', async () => {
-        setModeFromViewport();
-        if (pdfDoc) {
-          if (twoPageMode && currentPage % 2 === 0) currentPage -= 1; // keep spread alignment
-          await renderPages(currentPage);
-          updateNavButtons();
+        /* ---- Utilities ---- */
+        function base64ToUint8Array(base64) {
+            const bin = atob(base64);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return bytes;
         }
-      });
 
-      setStatus('Loading materials...');
-      try {
-        const list = await fetchList();
-        if (!list.length) { setStatus('No PDFs found.'); return; }
-        populateSelect(list);
-        setStatus(`${list.length} materials found.`);
-        $('pdf-select').addEventListener('change', (e) => loadAndOpen(e.target.value));
-        await loadAndOpen(list[0].id);
-      } catch (err) {
-        setStatus(`Failed: ${err.message}`);
-      }
-
-      $('prev-page').addEventListener('click', async () => {
-        const delta = twoPageMode ? 2 : 1;
-        const target = currentPage - delta;
-        if (target >= 1) {
-          await renderPages(target);
-          updateNavButtons();
+        function setModeFromViewport() {
+            // <= 768px -> single page; otherwise two-page spread
+            twoPageMode = !window.matchMedia('(max-width: 768px)').matches;
+            canvas2().style.display = twoPageMode ? 'block' : 'none';
         }
-      });
 
-      $('next-page').addEventListener('click', async () => {
-        const delta = twoPageMode ? 2 : 1;
-        const target = currentPage + delta;
-        if (target <= pdfDoc.numPages) {
-          await renderPages(target);
-          updateNavButtons();
+        /* ---- Networking ---- */
+        async function fetchList() {
+            const url = `${APPS_SCRIPT_BASE}?mode=list&folderId=${encodeURIComponent(FOLDER_ID)}&v=${VERSION}`;
+            console.log('LIST URL:', url);
+
+            let res, text;
+            try {
+                res = await fetch(url, { cache: 'no-store' });
+                text = await res.text(); // raw for helpful errors
+            } catch (e) {
+                setStatus(`Network error: ${e.message}`);
+                console.error('fetchList network error:', e);
+                throw e;
+            }
+
+            if (!res.ok) {
+                setStatus(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+                console.error('fetchList HTTP error:', res.status, text);
+                throw new Error(`HTTP ${res.status}`);
+            }
+
+            try {
+                const data = JSON.parse(text);
+                if (data && data.error) {
+                    setStatus(`Script error: ${data.error}`);
+                    console.error('fetchList script error:', data.error);
+                    throw new Error(data.error);
+                }
+                return data; // [{id,name,display,modifiedTime}, ...]
+            } catch (e) {
+                setStatus(`Bad JSON from script: ${text.slice(0, 200)}`);
+                console.error('fetchList JSON parse error. Raw:', text);
+                throw e;
+            }
         }
-      });
 
-      $('goto-btn').addEventListener('click', async () => {
-        if (!pdfDoc) return;
-        const val = parseInt($('goto-input').value, 10);
-        if (isNaN(val)) return;
-        let target = Math.max(1, Math.min(val, pdfDoc.numPages));
-        if (twoPageMode && target % 2 === 0) target -= 1; // left page on spread
-        await renderPages(target);
-        updateNavButtons();
-      });
-    }
-  </script>
+
+        // Stream the response and update progress  ← REPLACE your getPdfBase64 with this
+        async function getPdfBase64(fileId) {
+            if (cache.has(fileId)) return cache.get(fileId);
+
+            const expectedSize = fileSizes.get(fileId) || 0; // bytes from list
+            const url = `${APPS_SCRIPT_BASE}?mode=get&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) throw new Error(`PDF fetch failed (HTTP ${res.status})`);
+
+            // Start progress UI
+            showProgress(true);
+            setProgress(0, 'Starting…');
+
+            const reader = res.body.getReader();
+            const chunks = [];
+            let received = 0;
+
+            while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            received += value.length;
+
+            if (expectedSize > 0) {
+                const pct = (received / expectedSize) * 100;
+                setProgress(pct, `Downloading… ${Math.round(pct)}%`);
+            } else {
+                setProgress(0, `Downloading… ${Math.round(received/1024)} KB`);
+            }
+            }
+
+            const blob = new Blob(chunks);
+            const b64 = await blob.text();
+
+            // End progress UI
+            setProgress(100, 'Downloaded');
+            setTimeout(() => showProgress(false), 400);
+
+            cache.set(fileId, b64);
+            return b64;
+        }
+        /* ---- Rendering ---- */
+        async function loadAndOpen(fileId) {
+            setLoading('Loading PDF...');
+            showProgress(true);
+            const { pdfjsLib } = window;
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+            const b64 = await getPdfBase64(fileId);
+            const data = base64ToUint8Array(b64);
+            pdfDoc = await pdfjsLib.getDocument({ data }).promise;
+
+            $('loading-message').style.display = 'none';
+            $('pdf-render-area').style.display = 'flex';
+            $('pdf-nav').style.display = 'flex';
+
+            currentPage = 1;
+            await renderPages(currentPage);
+            updateNavButtons();
+        }
+
+        async function renderPages(startPage) {
+            if (!pdfDoc) return;
+            startPage = Math.max(1, Math.min(startPage, pdfDoc.numPages));
+
+            const renderArea = $('pdf-render-area');
+            const style = window.getComputedStyle(renderArea);
+            const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+            const gap = parseFloat(style.gap) || 0;
+            let availableWidth = renderArea.clientWidth - paddingX;
+
+            const page1 = await pdfDoc.getPage(startPage);
+            let totalPdfWidth = page1.getViewport({ scale: 1 }).width;
+
+            let page2 = null;
+            let page2Num = null;
+            if (twoPageMode) {
+                page2Num = startPage + 1;
+                if (page2Num <= pdfDoc.numPages) {
+                    availableWidth -= gap;
+                    page2 = await pdfDoc.getPage(page2Num);
+                    totalPdfWidth += page2.getViewport({ scale: 1 }).width;
+                }
+            }
+
+            const scale = availableWidth / totalPdfWidth;
+
+            const vp1 = page1.getViewport({ scale });
+            canvas1().width = vp1.width; canvas1().height = vp1.height;
+            await page1.render({ canvasContext: ctx1(), viewport: vp1 }).promise;
+            canvas1().style.display = 'block';
+
+            if (twoPageMode && page2) {
+                const vp2 = page2.getViewport({ scale });
+                canvas2().width = vp2.width; canvas2().height = vp2.height;
+                await page2.render({ canvasContext: ctx2(), viewport: vp2 }).promise;
+                canvas2().style.display = 'block';
+                $('page-num-display').textContent = `Pages ${startPage}–${page2Num} of ${pdfDoc.numPages}`;
+            } else {
+                canvas2().style.display = 'none';
+                $('page-num-display').textContent = `Page ${startPage} of ${pdfDoc.numPages}`;
+            }
+
+            currentPage = startPage;
+        }
+
+        function updateNavButtons() {
+            const prevDisabled = currentPage <= 1;
+            const nextDisabled = twoPageMode
+                ? (currentPage + 1 >= pdfDoc.numPages)
+                : (currentPage >= pdfDoc.numPages);
+            $('prev-page').disabled = prevDisabled;
+            $('next-page').disabled = nextDisabled;
+        }
+
+        // Update populateSelect to also fill fileSizes
+        function populateSelect(items) {
+            const sel = document.getElementById('pdf-select');
+            sel.innerHTML = '';
+            fileSizes.clear(); // ← NEW
+            items.forEach(it => {
+            fileSizes.set(it.id, Number(it.sizeBytes || 0)); // ← NEW
+            const opt = document.createElement('option');
+            opt.value = it.id;
+            opt.textContent = it.display || it.name.replace(/\.pdf$/i, '');
+            sel.appendChild(opt);
+            });
+        }
+
+        // Helpers for progress bar  ← NEW
+        function showProgress(show) {
+            const box = document.getElementById('dl-progress');
+            if (box) box.classList.toggle('hidden', !show);
+        }
+        function setProgress(pct, text) {
+            const bar = document.getElementById('dl-bar');
+            const lbl = document.getElementById('dl-label');
+            if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+            if (lbl) lbl.textContent = text ?? (Math.round(pct) + '%');
+        }        
+
+        /* ---- Init & events ---- */
+        async function initHSK() {
+            setModeFromViewport();
+            window.addEventListener('resize', async () => {
+                setModeFromViewport();
+                if (pdfDoc) {
+                    if (twoPageMode && currentPage % 2 === 0) currentPage -= 1; // keep spread alignment
+                    await renderPages(currentPage);
+                    updateNavButtons();
+                }
+            });
+
+            setStatus('Loading materials...');
+            try {
+                const list = await fetchList();
+                if (!list.length) { setStatus('No PDFs found.'); return; }
+                populateSelect(list);
+                setStatus(`${list.length} materials found.`);
+                $('pdf-select').addEventListener('change', (e) => loadAndOpen(e.target.value));
+                await loadAndOpen(list[0].id);
+            } catch (err) {
+                setStatus(`Failed: ${err.message}`);
+            }
+
+            $('prev-page').addEventListener('click', async () => {
+                const delta = twoPageMode ? 2 : 1;
+                const target = currentPage - delta;
+                if (target >= 1) {
+                    await renderPages(target);
+                    updateNavButtons();
+                }
+            });
+
+            $('next-page').addEventListener('click', async () => {
+                const delta = twoPageMode ? 2 : 1;
+                const target = currentPage + delta;
+                if (target <= pdfDoc.numPages) {
+                    await renderPages(target);
+                    updateNavButtons();
+                }
+            });
+
+            $('goto-btn').addEventListener('click', async () => {
+                if (!pdfDoc) return;
+                const val = parseInt($('goto-input').value, 10);
+                if (isNaN(val)) return;
+                let target = Math.max(1, Math.min(val, pdfDoc.numPages));
+                if (twoPageMode && target % 2 === 0) target -= 1; // left page on spread
+                await renderPages(target);
+                updateNavButtons();
+            });
+        }
+    </script>
 </body>
+
 </html>
