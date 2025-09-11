@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/assets/css/styles.css" />
   <script type="module" src="/assets/js/components/header.js"></script>
   <script type="module" src="/assets/js/components/footer.js"></script>
-  <!-- Tailwind for PDF viewer -->
+  <!-- Tailwind for PDF viewer layout helpers -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     #pdf-viewer canvas { max-width: 100%; height: auto; border: 1px solid #ddd; }
@@ -17,8 +17,8 @@
 </head>
 <body>
   <site-header></site-header>
-  <main class="container prose">
 
+  <main class="container prose">
     <h1>HSK 2.0 Vocabulary</h1>
 
     <!-- Viewer controls -->
@@ -52,15 +52,16 @@
         <span id="page-num-display" class="text-slate-700 font-medium"></span>
       </div>
     </section>
-
   </main>
+
   <site-footer></site-footer>
 
   <!-- PDF viewer script -->
   <script>
-    /***** CONFIG — already filled in for HSK-2 *****/
+    /***** CONFIG *****/
     const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbxI9QfAigtr23RlCPq_vxQsk7m0fzn6mTL8_DUTtFE8E60SmeeLcJUQCEGj_v6mMb6NTA/exec';
     const FOLDER_ID = '1fxVRg5zDlf-Zre6uy8ac48C3ILHtaPfF';
+    const VERSION = 'v1'; // bump to bust caches after updates
 
     /* Load PDF.js first, then init */
     (function loadPdfJs() {
@@ -100,71 +101,53 @@
       canvas2().style.display = twoPageMode ? 'block' : 'none';
     }
 
+    /* ---- Networking ---- */
     async function fetchList() {
-      const url = `${APPS_SCRIPT_BASE}?mode=list&folderId=${encodeURIComponent(FOLDER_ID)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('List fetch failed');
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      return data; // [{id,name,display,modifiedTime}, ...]
-    }
-    async function fetchList() {
-        const VERSION = 'v1'; // bump when you change code to bust cache
-        const url = `${APPS_SCRIPT_BASE}?mode=list&folderId=${encodeURIComponent(FOLDER_ID)}&v=${VERSION}`;
-        console.log('LIST URL:', url);
+      const url = `${APPS_SCRIPT_BASE}?mode=list&folderId=${encodeURIComponent(FOLDER_ID)}&v=${VERSION}`;
+      console.log('LIST URL:', url);
 
-        let res, text;
-        try {
+      let res, text;
+      try {
         res = await fetch(url, { cache: 'no-store' });
-        text = await res.text(); // read raw to show useful errors
-        } catch (e) {
+        text = await res.text(); // raw for helpful errors
+      } catch (e) {
         setStatus(`Network error: ${e.message}`);
         console.error('fetchList network error:', e);
         throw e;
-        }
+      }
 
-        if (!res.ok) {
+      if (!res.ok) {
         setStatus(`HTTP ${res.status}: ${text.slice(0,200)}`);
         console.error('fetchList HTTP error:', res.status, text);
         throw new Error(`HTTP ${res.status}`);
-        }
+      }
 
-        // Try to parse JSON
-        try {
+      try {
         const data = JSON.parse(text);
         if (data && data.error) {
-            setStatus(`Script error: ${data.error}`);
-            console.error('fetchList script error:', data.error);
-            throw new Error(data.error);
+          setStatus(`Script error: ${data.error}`);
+          console.error('fetchList script error:', data.error);
+          throw new Error(data.error);
         }
-        return data;
-        } catch (e) {
+        return data; // [{id,name,display,modifiedTime}, ...]
+      } catch (e) {
         setStatus(`Bad JSON from script: ${text.slice(0,200)}`);
         console.error('fetchList JSON parse error. Raw:', text);
         throw e;
-        }
-    }
-
-    function populateSelect(items) {
-      const sel = $('pdf-select');
-      sel.innerHTML = '';
-      for (const it of items) {
-        const opt = document.createElement('option');
-        opt.value = it.id;
-        opt.textContent = it.display || it.name.replace(/\.pdf$/i, '');
-        sel.appendChild(opt);
       }
     }
 
     async function getPdfBase64(fileId) {
       if (cache.has(fileId)) return cache.get(fileId);
-      const res = await fetch(`${APPS_SCRIPT_BASE}?mode=get&fileId=${encodeURIComponent(fileId)}`);
-      if (!res.ok) throw new Error('PDF fetch failed');
+      const url = `${APPS_SCRIPT_BASE}?mode=get&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`PDF fetch failed (HTTP ${res.status})`);
       const b64 = await res.text();
       cache.set(fileId, b64);
       return b64;
     }
 
+    /* ---- Rendering ---- */
     async function loadAndOpen(fileId) {
       setLoading('Loading PDF...');
       const { pdfjsLib } = window;
@@ -237,12 +220,13 @@
       $('next-page').disabled = nextDisabled;
     }
 
+    /* ---- Init & events ---- */
     async function initHSK() {
       setModeFromViewport();
       window.addEventListener('resize', async () => {
         setModeFromViewport();
         if (pdfDoc) {
-          if (twoPageMode && currentPage % 2 === 0) currentPage -= 1;
+          if (twoPageMode && currentPage % 2 === 0) currentPage -= 1; // keep spread alignment
           await renderPages(currentPage);
           updateNavButtons();
         }
@@ -268,6 +252,7 @@
           updateNavButtons();
         }
       });
+
       $('next-page').addEventListener('click', async () => {
         const delta = twoPageMode ? 2 : 1;
         const target = currentPage + delta;
@@ -282,7 +267,7 @@
         const val = parseInt($('goto-input').value, 10);
         if (isNaN(val)) return;
         let target = Math.max(1, Math.min(val, pdfDoc.numPages));
-        if (twoPageMode && target % 2 === 0) target -= 1;
+        if (twoPageMode && target % 2 === 0) target -= 1; // left page on spread
         await renderPages(target);
         updateNavButtons();
       });
