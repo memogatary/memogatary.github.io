@@ -50,6 +50,16 @@
         <!-- PDF Viewer -->
         <section id="pdf-viewer" class="mt-4">
             <p id="loading-message" class="text-slate-600">Loading…</p>
+            <!-- Spinner + label -->
+            <div id="busy" class="hidden mt-3 flex items-center gap-2 text-slate-600">
+                <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"
+                        class="opacity-25"></circle>
+                    <path d="M4 12a8 8 0 018-8" fill="currentColor" class="opacity-75"></path>
+                </svg>
+                <span id="busy-label">Preparing…</span>
+            </div>
+
             <!-- Progress bar -->
             <div id="dl-progress" class="hidden mt-3">
                 <div class="w-full bg-gray-200 rounded">
@@ -121,6 +131,32 @@
             for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
             return bytes;
         }
+        function showBusy(show, label) {
+            const box = document.getElementById('busy');
+            const txt = document.getElementById('busy-label');
+            if (!box) return;
+            if (typeof label === 'string' && txt) txt.textContent = label;
+            box.classList.toggle('hidden', !show);
+        }
+        function showProgress(show) {
+            const box = document.getElementById('dl-progress');
+            if (box) box.classList.toggle('hidden', !show);
+        }
+        function setProgress(pct, text) {
+            const bar = document.getElementById('dl-bar');
+            const lbl = document.getElementById('dl-label');
+            if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+            if (lbl) lbl.textContent = text ?? (Math.round(pct) + '%');
+        }
+        // Base64 length estimator so % never exceeds 100
+        function estimateBase64Length(byteLen) { return 4 * Math.ceil(byteLen / 3); }
+
+        // Estimate the length of Base64 produced from N binary bytes
+        function estimateBase64Length(byteLen) {
+            // 4 * ceil(n/3), ignore <=2 bytes of '=' padding because we'll cap at 99%
+            return 4 * Math.ceil(byteLen / 3);
+        }
+
 
         function setModeFromViewport() {
             // <= 768px -> single page; otherwise two-page spread
@@ -165,66 +201,90 @@
         }
 
 
-        // Stream the response and update progress  ← REPLACE your getPdfBase64 with this
         async function getPdfBase64(fileId) {
             if (cache.has(fileId)) return cache.get(fileId);
 
-            const expectedSize = fileSizes.get(fileId) || 0; // bytes from list
+            const expectedBinary = fileSizes.get(fileId) || 0;
+            const expectedBase64 = expectedBinary ? estimateBase64Length(expectedBinary) : 0;
+
             const url = `${APPS_SCRIPT_BASE}?mode=get&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
             const res = await fetch(url, { cache: 'no-store' });
             if (!res.ok) throw new Error(`PDF fetch failed (HTTP ${res.status})`);
 
-            // Start progress UI
-            showProgress(true);
-            setProgress(0, 'Starting…');
+            // PREPARING (server reading & encoding)
+            showBusy(true, 'Preparing…');
+            showProgress(false);
 
             const reader = res.body.getReader();
             const chunks = [];
             let received = 0;
+            let started = false;
 
             while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
-            received += value.length;
+                const { done, value } = await reader.read();
+                if (done) break;
 
-            if (expectedSize > 0) {
-                const pct = (received / expectedSize) * 100;
-                setProgress(pct, `Downloading… ${Math.round(pct)}%`);
-            } else {
-                setProgress(0, `Downloading… ${Math.round(received/1024)} KB`);
-            }
+                // DOWNLOADING
+                if (!started) {
+                    started = true;
+                    showBusy(false);
+                    showProgress(true);
+                    setProgress(1, 'Downloading… 1%');
+                }
+
+                chunks.push(value);
+                received += value.length;
+
+                if (expectedBase64 > 0) {
+                    const pct = Math.min(99, Math.round((received / expectedBase64) * 100));
+                    setProgress(pct, `Downloading… ${pct}%`);
+                } else {
+                    setProgress(0, `Downloading… ${Math.round(received / 1024)} KB`);
+                }
             }
 
             const blob = new Blob(chunks);
             const b64 = await blob.text();
 
-            // End progress UI
-            setProgress(100, 'Downloaded');
-            setTimeout(() => showProgress(false), 400);
+            // POST-DOWNLOAD PROCESSING
+            showProgress(false);
+            showBusy(true, 'Processing…');
 
             cache.set(fileId, b64);
             return b64;
         }
+
+
         /* ---- Rendering ---- */
         async function loadAndOpen(fileId) {
             setLoading('Loading PDF...');
-            showProgress(true);
+            showBusy(true, 'Preparing…');  // until getPdfBase64 switches phases
+
             const { pdfjsLib } = window;
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
             const b64 = await getPdfBase64(fileId);
+
+            // Parsing the PDF bytes
+            showBusy(true, 'Processing…');
             const data = base64ToUint8Array(b64);
             pdfDoc = await pdfjsLib.getDocument({ data }).promise;
 
-            $('loading-message').style.display = 'none';
-            $('pdf-render-area').style.display = 'flex';
-            $('pdf-nav').style.display = 'flex';
+            // First render
+            document.getElementById('loading-message').style.display = 'none';
+            document.getElementById('pdf-render-area').style.display = 'flex';
+            document.getElementById('pdf-nav').style.display = 'flex';
 
             currentPage = 1;
+            showBusy(true, 'Rendering…');
             await renderPages(currentPage);
             updateNavButtons();
+
+            // Done
+            showBusy(false);
         }
+
 
         async function renderPages(startPage) {
             if (!pdfDoc) return;
@@ -286,11 +346,11 @@
             sel.innerHTML = '';
             fileSizes.clear(); // ← NEW
             items.forEach(it => {
-            fileSizes.set(it.id, Number(it.sizeBytes || 0)); // ← NEW
-            const opt = document.createElement('option');
-            opt.value = it.id;
-            opt.textContent = it.display || it.name.replace(/\.pdf$/i, '');
-            sel.appendChild(opt);
+                fileSizes.set(it.id, Number(it.sizeBytes || 0)); // ← NEW
+                const opt = document.createElement('option');
+                opt.value = it.id;
+                opt.textContent = it.display || it.name.replace(/\.pdf$/i, '');
+                sel.appendChild(opt);
             });
         }
 
@@ -304,7 +364,7 @@
             const lbl = document.getElementById('dl-label');
             if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
             if (lbl) lbl.textContent = text ?? (Math.round(pct) + '%');
-        }        
+        }
 
         /* ---- Init & events ---- */
         async function initHSK() {
