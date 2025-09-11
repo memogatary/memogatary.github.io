@@ -108,6 +108,42 @@
       if (data.error) throw new Error(data.error);
       return data; // [{id,name,display,modifiedTime}, ...]
     }
+    async function fetchList() {
+        const VERSION = 'v1'; // bump when you change code to bust cache
+        const url = `${APPS_SCRIPT_BASE}?mode=list&folderId=${encodeURIComponent(FOLDER_ID)}&v=${VERSION}`;
+        console.log('LIST URL:', url);
+
+        let res, text;
+        try {
+        res = await fetch(url, { cache: 'no-store' });
+        text = await res.text(); // read raw to show useful errors
+        } catch (e) {
+        setStatus(`Network error: ${e.message}`);
+        console.error('fetchList network error:', e);
+        throw e;
+        }
+
+        if (!res.ok) {
+        setStatus(`HTTP ${res.status}: ${text.slice(0,200)}`);
+        console.error('fetchList HTTP error:', res.status, text);
+        throw new Error(`HTTP ${res.status}`);
+        }
+
+        // Try to parse JSON
+        try {
+        const data = JSON.parse(text);
+        if (data && data.error) {
+            setStatus(`Script error: ${data.error}`);
+            console.error('fetchList script error:', data.error);
+            throw new Error(data.error);
+        }
+        return data;
+        } catch (e) {
+        setStatus(`Bad JSON from script: ${text.slice(0,200)}`);
+        console.error('fetchList JSON parse error. Raw:', text);
+        throw e;
+        }
+    }
 
     function populateSelect(items) {
       const sel = $('pdf-select');
