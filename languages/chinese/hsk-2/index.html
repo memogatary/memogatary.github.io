@@ -84,9 +84,14 @@
     const ctx1    = () => canvas1().getContext('2d');
     const ctx2    = () => canvas2().getContext('2d');
 
-    function setStatus(msg) { $('list-status')?.textContent = msg; }
-    function setLoading(msg) { $('loading-message').textContent = msg; }
-
+    function setStatus(msg) {
+        const el = document.getElementById('list-status');
+        if (el) el.textContent = msg;
+    }
+    function setLoading(msg) {
+        const el = document.getElementById('loading-message');
+        if (el) el.textContent = msg;
+    }
     /* ---- Utilities ---- */
     function base64ToUint8Array(base64) {
       const bin = atob(base64);
