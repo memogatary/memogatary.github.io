@@ -224,6 +224,18 @@
       $('prev-page').disabled = prevDisabled;
       $('next-page').disabled = nextDisabled;
     }
+    
+    function populateSelect(items) {
+        const sel = document.getElementById('pdf-select');
+        if (!sel) return;
+        sel.innerHTML = '';
+        items.forEach(it => {
+        const opt = document.createElement('option');
+        opt.value = it.id;
+        opt.textContent = it.display || it.name.replace(/\.pdf$/i, '');
+        sel.appendChild(opt);
+        });
+    }
 
     /* ---- Init & events ---- */
     async function initHSK() {
