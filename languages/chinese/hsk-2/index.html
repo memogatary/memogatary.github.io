@@ -140,7 +140,7 @@
 
     <script>
         /***** CONFIG *****/
-        const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbwA-ym_IgYmbaq5lBUMzczHYRHPY5rcnKV7CF2dGVZl_VJtJfH_KrkHIUKcvRGZC5lo/exec';
+        const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbywvXtg8VoyvsckVNRutsQwPV8_dufWUxhvTTlW3wtxFOP6FJ5vdrCrwE7bdftKj5a2mg/exec';
         const FOLDER_ID = '1fxVRg5zDlf-Zre6uy8ac48C3ILHtaPfF';
         const VERSION = 'v7';
 
@@ -185,24 +185,10 @@
             return data;
         }
 
-        async function fetchPdfBytes(fileId) {
-            const url = `${APPS_SCRIPT_BASE}?mode=file&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
-            const res = await fetch(url, { cache: 'no-store' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const buf = await res.arrayBuffer();
-            return new Uint8Array(buf);
-        }
-
         function b64ToBytes(b64) {
-            // normalize + strip whitespace/newlines and web-safe variants
-            b64 = (b64 || "")
-                .replace(/[\r\n\s]+/g, "")
-                .replace(/-/g, "+")
-                .replace(/_/g, "/");
-
-            while (b64.length % 4 !== 0) b64 += "="; // pad if truncated
-
-            const bin = atob(b64); // will throw if not base64
+            b64 = (b64 || "").replace(/[\r\n\s]+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+            while (b64.length % 4 !== 0) b64 += "=";
+            const bin = atob(b64);
             const out = new Uint8Array(bin.length);
             for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
             return out;
@@ -211,28 +197,14 @@
         async function fetchPdfBytes(fileId) {
             const url = `${APPS_SCRIPT_BASE}?mode=fileB64&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
             const res = await fetch(url, { cache: "no-store" });
-            const text = await res.text(); // Always read as text first
-
+            const text = await res.text();
             if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
 
             const head = text.trim().slice(0, 120);
-
-            // If server returned an error or HTML/JSON, bail early with a clear message
-            if (
-                head.startsWith("ERROR") ||
-                head.startsWith("<!DOCTYPE") ||
-                head.startsWith("<html") ||
-                head.startsWith("{") ||
-                /[^A-Za-z0-9+\/=\r\n]/.test(head)
-            ) {
+            if (head.startsWith("ERROR") || head.startsWith("<") || head.startsWith("{")) {
                 throw new Error("Server did not return base64. First 120 chars:\n" + head);
             }
-
-            try {
-                return b64ToBytes(text);
-            } catch (e) {
-                throw new Error("Base64 decode failed. First 120 chars:\n" + head);
-            }
+            return b64ToBytes(text);
         }
 
 
