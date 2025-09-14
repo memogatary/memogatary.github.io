@@ -208,33 +208,37 @@
         }
 
 
-        /* ---- High-DPI canvas rendering ---- */
+        /* ---- High-DPI canvas rendering (safe against PDF.js downsizing) ---- */
         async function renderPageToCanvas(page, canvas, viewport) {
-            // Use real DPR (respects desktop zoom) but cap a bit for perf
-            const dprExact = window.devicePixelRatio || 1;
-            const dpr = Math.min(dprExact, 2);
-
             const ctx = canvas.getContext('2d', { alpha: false });
 
-            // Backing store in physical pixels (rounded to avoid fractional mismatch)
-            const bw = Math.round(viewport.width * dpr);
-            const bh = Math.round(viewport.height * dpr);
+            const MAX_PIXELS = 16_000_000; // keep under 16M to avoid PDF.js internal downscale
+            const baseW = viewport.width;
+            const baseH = viewport.height;
+
+            // Start at DPR, reduce a bit if we exceed max pixels
+            let dpr = window.devicePixelRatio || 1;
+            let bw = Math.round(baseW * dpr);
+            let bh = Math.round(baseH * dpr);
+            while (bw * bh > MAX_PIXELS && dpr > 1) {
+                dpr = Math.max(1, dpr - 0.25);       // step down gently
+                bw = Math.round(baseW * dpr);
+                bh = Math.round(baseH * dpr);
+            }
+
+            // Set backing store size (sharp) and CSS size (layout)
             canvas.width = bw;
             canvas.height = bh;
+            canvas.style.width = Math.round(bw / dpr) + 'px';
+            canvas.style.height = Math.round(bh / dpr) + 'px';
 
-            // CSS size derived from backing size so bw === cssW * dpr exactly
-            const cssW = bw / dpr;
-            const cssH = bh / dpr;
-            canvas.style.width = cssW + 'px';
-            canvas.style.height = cssH + 'px';
-
-            // Render with DPR transform (keeps vectors/text sharp)
             await page.render({
                 canvasContext: ctx,
                 viewport,
-                transform: [dpr, 0, 0, dpr, 0, 0]
+                transform: [dpr, 0, 0, dpr, 0, 0],   // draw at effective DPR
             }).promise;
         }
+
 
 
         /* ---- Rendering (two-page spread or single) ---- */
@@ -278,6 +282,11 @@
             const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
             const gap = parseFloat(style.gap) || 0;
             let availableWidth = renderArea.clientWidth - paddingX;
+
+            // account for 1px border on each canvas (left+right)
+            const borderPerCanvas = 2; // px
+            availableWidth -= twoPageMode ? (borderPerCanvas * 2) : borderPerCanvas;
+
 
             const page1 = await pdfDoc.getPage(startPage);
             let totalPdfWidth = page1.getViewport({ scale: 1 }).width;
