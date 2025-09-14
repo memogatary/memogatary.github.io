@@ -58,3 +58,48 @@ class SiteHeader extends HTMLElement {
   }
 }
 customElements.define('site-header', SiteHeader);
+
+// --- Back-to-parent pill button (site-wide) ---
+document.addEventListener("DOMContentLoaded", () => {
+  // Normalize current path
+  let path = location.pathname.replace(/\/index\.html$/i, "").replace(/\/+$/, "");
+  if (path === "") path = "/";
+
+  // Hide on the home page
+  if (path === "/") return;
+
+  // Compute parent path (e.g., /languages/chinese/hsk -> /languages/chinese/)
+  const cut = path.lastIndexOf("/");
+  let parentPath = cut > 0 ? path.slice(0, cut) : "/";
+  if (parentPath.length > 1 && !parentPath.endsWith("/")) parentPath += "/";
+
+  // Human label from the parent folder name
+  const seg = parentPath.split("/").filter(Boolean).pop() || "home";
+  const labelText =
+    seg === "home"
+      ? "Back to Home"
+      : "Back to " + seg.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+  // Build a pill-style button (Tailwind classes)
+  const wrapper = document.createElement("a");
+  wrapper.href = parentPath;
+  wrapper.setAttribute("aria-label", labelText);
+  wrapper.className = "container block mt-3"; // keep aligned with page content
+
+  wrapper.innerHTML = `
+    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full
+                 bg-slate-100 text-slate-700 hover:bg-slate-200
+                 transition shadow-sm">
+      <span aria-hidden="true">←</span>
+      <span>${labelText}</span>
+    </span>
+  `;
+
+  // Insert right under the site header (fallback: prepend to body)
+  const headerEl = document.querySelector("site-header");
+  if (headerEl) {
+    headerEl.insertAdjacentElement("afterend", wrapper);
+  } else {
+    document.body.prepend(wrapper);
+  }
+});
