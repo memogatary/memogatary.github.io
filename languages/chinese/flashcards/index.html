@@ -1,20 +1,25 @@
-
 <!doctype html>
 <html lang="en">
+
 <head>
   <title>Flashcard App · Chinese · Memogatary</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="/favicon.png" type="image/png" />
+  <link rel="icon" href="/favicon.png" type="image/png" />
   <link rel="stylesheet" href="/assets/css/styles.css" />
   <script type="module" src="/assets/js/components/header.js"></script>
   <script type="module" src="/assets/js/components/footer.js"></script>
 </head>
+
 <body>
   <site-header></site-header>
   <main class="container prose">
-    <h1>Flashcard App</h1>
-    <p class="muted">Data source resolves relative to your repo automatically.</p>
+    <h1>HSK 2.0 (UPDATED) Flashcard App</h1>
+    <p class="text-center text-slate-700">
+      Videos:
+      <a class="text-indigo-600 underline" href="https://www.youtube.com/@LuyenTiengTrung2" target="_blank"
+        rel="noopener">Luyện Tiếng Trung 2</a>.
+    </p>
     <div id="flashcards-app"></div>
   </main>
   <site-footer></site-footer>
@@ -22,140 +27,208 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
-  /* Flashcards widget theme (scoped) */
-  .fc-scope {
-    /* High-contrast light card theme */
-    --fc-bg: #ffffff;        /* card background */
-    --fc-fg: #111827;        /* main text (near-black) */
-    --fc-muted: #6b7280;     /* secondary text */
-    --fc-emph: #0f172a;      /* emphasized text (titles) */
-    --fc-shadow: 0 10px 28px rgba(0,0,0,.12);
-    --fc-border: #e5e7eb;
-  }
+    /* Flashcards widget theme (scoped) */
+    .fc-scope {
+      /* High-contrast light card theme */
+      --fc-bg: #ffffff;
+      /* card background */
+      --fc-fg: #111827;
+      /* main text (near-black) */
+      --fc-muted: #6b7280;
+      /* secondary text */
+      --fc-emph: #0f172a;
+      /* emphasized text (titles) */
+      --fc-shadow: 0 10px 28px rgba(0, 0, 0, .12);
+      --fc-border: #e5e7eb;
+    }
 
-  /* Layout inside the widget */
-  .fc-scope * {
-    box-sizing: border-box;
-    font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",Arial;
-  }
+    /* Layout inside the widget */
+    .fc-scope * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial;
+    }
 
-  .fc-wrap { max-width: 1200px; margin: 40px auto; padding: 16px; }
+    .fc-wrap {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 16px;
+    }
 
-  .fc-head { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
-  .fc-title { font-size: 24px; font-weight: 800; text-align:center; color: var(--fc-emph); }
-  .fc-select {
-    padding: 8px 10px;
-    border: 1px solid var(--fc-border);
-    border-radius: 10px;
-    background:#fff;
-    color: var(--fc-fg);
-  }
+    .fc-head {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
 
-  /* The card is light with dark text regardless of site theme */
-  .fc-card {
-    position: relative;
-    background: var(--fc-bg);
-    color: var(--fc-fg);
-    border-radius: 20px;
-    padding: 34px;
-    box-shadow: var(--fc-shadow);
-    min-height: 420px;
-    display: grid;
-    place-items: center;
-    transition: transform .2s ease;
-  }
-  .fc-card:hover { transform: translateY(-2px); }
+    .fc-title {
+      font-size: 24px;
+      font-weight: 800;
+      text-align: center;
+      color: var(--fc-emph);
+    }
 
-  .fc-front, .fc-back { width:100%; text-align:center; }
+    .fc-select {
+      padding: 8px 10px;
+      border: 1px solid var(--fc-border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--fc-fg);
+    }
 
-  /* Front side */
-  .fc-front .main {
-    font-size: clamp(34px, 5vw, 46px);
-    line-height:1.15;
-    margin-bottom:8px;
-    color: var(--fc-emph);
-  }
-  .fc-front .sub  { font-size: 16px; color: var(--fc-muted); }
+    /* The card is light with dark text regardless of site theme */
+    .fc-card {
+      position: relative;
+      background: var(--fc-bg);
+      color: var(--fc-fg);
+      border-radius: 20px;
+      padding: 34px;
+      box-shadow: var(--fc-shadow);
+      min-height: 420px;
+      display: grid;
+      place-items: center;
+      transition: transform .2s ease;
+    }
 
-  /* Back side */
-  .fc-back .meaning  {
-    font-size: clamp(18px, 2.5vw, 22px);
-    font-weight:700;
-    margin-bottom:6px;
-    color: var(--fc-emph);
-  }
-  .fc-back .sinoviet { font-size: clamp(16px, 2.2vw, 20px); margin-bottom:10px; color: var(--fc-fg); }
-  .fc-back .example  {
-    font-size: clamp(14px, 2.2vw, 16.5px);
-    color: var(--fc-fg);
-    opacity:.95; white-space: pre-line; text-align:center;
-    max-height: 50vh; overflow:auto; overscroll-behavior:contain; padding: 0 6px;
-  }
+    .fc-card:hover {
+      transform: translateY(-2px);
+    }
 
-  /* Meta + controls */
-  .fc-meta {
-    margin-top:10px;
-    font-size:12px;
-    color: var(--fc-muted);
-    text-align:center;
-    display:flex;
-    gap:8px;
-    justify-content:center;
-    flex-wrap:wrap;
-  }
-  .fc-timer { font-weight:700; }
+    .fc-front,
+    .fc-back {
+      width: 100%;
+      text-align: center;
+    }
 
-  .fc-controls { display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
-  .fc-btn {
-    border:1px solid var(--fc-border);
-    background:#fff;
-    color: var(--fc-emph);
-    padding:10px 14px;
-    border-radius:12px;
-    cursor:pointer;
-    font-weight:600;
-    transition: box-shadow .15s ease, transform .05s ease;
-  }
-  .fc-btn:active { transform: translateY(1px); }
+    /* Front side */
+    .fc-front .main {
+      font-size: clamp(34px, 5vw, 46px);
+      line-height: 1.15;
+      margin-bottom: 8px;
+      color: var(--fc-emph);
+    }
 
-  /* Flip behavior */
-  .fc-back { display:none; }
-  .is-back .fc-front { display:none; }
-  .is-back .fc-back  { display:block; }
+    .fc-front .sub {
+      font-size: 16px;
+      color: var(--fc-muted);
+    }
 
-  /* Mobile */
-  @media (max-width: 520px){
-    .fc-card { padding:22px; min-height: 360px; }
-  }
+    /* Back side */
+    .fc-back .meaning {
+      font-size: clamp(18px, 2.5vw, 22px);
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--fc-emph);
+    }
+
+    .fc-back .sinoviet {
+      font-size: clamp(16px, 2.2vw, 20px);
+      margin-bottom: 10px;
+      color: var(--fc-fg);
+    }
+
+    .fc-back .example {
+      font-size: clamp(14px, 2.2vw, 16.5px);
+      color: var(--fc-fg);
+      opacity: .95;
+      white-space: pre-line;
+      text-align: center;
+      max-height: 50vh;
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding: 0 6px;
+    }
+
+    /* Meta + controls */
+    .fc-meta {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--fc-muted);
+      text-align: center;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .fc-timer {
+      font-weight: 700;
+    }
+
+    .fc-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .fc-btn {
+      border: 1px solid var(--fc-border);
+      background: #fff;
+      color: var(--fc-emph);
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: box-shadow .15s ease, transform .05s ease;
+    }
+
+    .fc-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Flip behavior */
+    .fc-back {
+      display: none;
+    }
+
+    .is-back .fc-front {
+      display: none;
+    }
+
+    .is-back .fc-back {
+      display: block;
+    }
+
+    /* Mobile */
+    @media (max-width: 520px) {
+      .fc-card {
+        padding: 22px;
+        min-height: 360px;
+      }
+    }
   </style>
 
   <script>
-  (() => {
-    // ******* Robust GitHub Pages path detection *******
-    // This page lives under /<base>/languages/chinese/flashcards/
-    // We compute the <base> by taking everything before '/languages/'.
-    const BASE = location.pathname.split('/languages/')[0];
-    // Excel path from repo root:
-    const XLSX_URL = `${BASE}/assets/data/chinese/HSK20VocabularyApp.xlsx`;
+    (() => {
+      // ******* Robust GitHub Pages path detection *******
+      // This page lives under /<base>/languages/chinese/flashcards/
+      // We compute the <base> by taking everything before '/languages/'.
+      const BASE = location.pathname.split('/languages/')[0];
+      // Excel path from repo root:
+      const XLSX_URL = `${BASE}/assets/data/chinese/HSK20VocabularyApp.xlsx`;
 
-    const FIELDS = {
-      level: "Level",
-      number: "Number",
-      phrase: "Phrase",
-      pinyin: "Pinyin",
-      example_simp: "Example",
-      example_trad: "Ex-TW",
-      example_pin:  "ExPinyin",
-      example_vi:   "Ex-vi",
-      example_en:   "Ex-En",
-      example_en_ipa: "Ex-EnIPA",
-      vn_def: "VnDef",
-      sino_ex: "SinoEx",
-      sino_viet: "SinoViet"
-    };
+      const FIELDS = {
+        level: "Level",
+        number: "Number",
+        phrase: "Phrase",
+        pinyin: "Pinyin",
+        example_simp: "Example",
+        example_trad: "Ex-TW",
+        example_pin: "ExPinyin",
+        example_vi: "Ex-vi",
+        example_en: "Ex-En",
+        example_en_ipa: "Ex-EnIPA",
+        vn_def: "VnDef",
+        sino_ex: "SinoEx",
+        sino_viet: "SinoViet"
+      };
 
-    const root = document.getElementById("flashcards-app");
-    root.innerHTML = `
+      const root = document.getElementById("flashcards-app");
+      root.innerHTML = `
       <div class="fc-scope">
         <div class="fc-wrap">
           <div class="fc-head">
@@ -196,187 +269,187 @@
       </div>
     `;
 
-    const $ = id => document.getElementById(id);
-    const selLevel = $("level-filter");
-    const cardEl = $("fc-card");
-    const mainEl = $("fc-main");
-    const subEl = $("fc-sub");
-    const meaningEl = $("fc-meaning");
-    const sinoVEl = $("fc-sinoviet");
-    const exampleEl = $("fc-example");
-    const posEl = $("fc-pos");
-    const lvlMetaEl = $("fc-levelmeta");
-    const numMetaEl = $("fc-numbermeta");
-    const timerEl = $("fc-timer");
+      const $ = id => document.getElementById(id);
+      const selLevel = $("level-filter");
+      const cardEl = $("fc-card");
+      const mainEl = $("fc-main");
+      const subEl = $("fc-sub");
+      const meaningEl = $("fc-meaning");
+      const sinoVEl = $("fc-sinoviet");
+      const exampleEl = $("fc-example");
+      const posEl = $("fc-pos");
+      const lvlMetaEl = $("fc-levelmeta");
+      const numMetaEl = $("fc-numbermeta");
+      const timerEl = $("fc-timer");
 
-    const btnPrev   = $("btn-prev");
-    const btnNext   = $("btn-next");
-    const btnFlip   = $("btn-flip");
-    const btnRandom = $("btn-random");
-    const btnPause  = $("btn-pause");
+      const btnPrev = $("btn-prev");
+      const btnNext = $("btn-next");
+      const btnFlip = $("btn-flip");
+      const btnRandom = $("btn-random");
+      const btnPause = $("btn-pause");
 
-    const onInteract = () => startTimer(true);
-    [btnPrev, btnNext, btnFlip, btnRandom, cardEl, selLevel].forEach(el => {
-      el.addEventListener("click", onInteract);
-      el.addEventListener("change", onInteract);
-    });
-
-    btnFlip.onclick   = () => cardEl.classList.toggle("is-back");
-    btnNext.onclick   = () => show((idx + 1) % viewData.length);
-    btnPrev.onclick   = () => show((idx - 1 + viewData.length) % viewData.length);
-    btnRandom.onclick = () => show(pickRandomIndex());
-    cardEl.onclick    = () => cardEl.classList.toggle("is-back");
-
-    let paused = false;
-    btnPause.onclick = () => {
-      paused = !paused;
-      btnPause.textContent = paused ? "Resume" : "Pause";
-      if (paused) {
-        if (tHandle) clearInterval(tHandle);
-        timerEl.textContent = `• Paused (${countdown}s left)`;
-      } else {
-        startTimer(false);
-      }
-    };
-
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowRight") { onInteract(); btnNext.click(); }
-      if (e.key === "ArrowLeft")  { onInteract(); btnPrev.click(); }
-      if (e.key.toLowerCase() === "f") { onInteract(); btnFlip.click(); }
-      if (e.code === "Space") { e.preventDefault(); btnPause.click(); }
-    });
-
-    let fullData = [];
-    let viewData = [];
-    let idx = -1, lastIdx = -1;
-
-    let countdown = 15;
-    let tHandle = null;
-    function startTimer(reset=false){
-      if (tHandle) clearInterval(tHandle);
-      if (reset) countdown = 15;
-
-      if (paused) {
-        timerEl.textContent = `• Paused (${countdown}s left)`;
-        return;
-      }
-
-      timerEl.textContent = `• Auto-next in ${countdown}s`;
-      tHandle = setInterval(() => {
-        countdown--;
-        timerEl.textContent = `• Auto-next in ${countdown}s`;
-        if (countdown <= 0) {
-          clearInterval(tHandle);
-          btnNext.click();
-          startTimer(true);
-        }
-      }, 1000);
-    }
-
-    function norm(s){ return (s==null ? "" : String(s)).trim(); }
-    function normLevel(s){ return norm(s).replace(/\s+/g, " "); }
-    function get(row, key){ return norm(row[FIELDS[key]]); }
-
-    function pickRandomIndex(){
-      if (viewData.length <= 1) return 0;
-      let i = Math.floor(Math.random() * viewData.length);
-      if (i === lastIdx) i = (i + 1) % viewData.length;
-      return i;
-    }
-
-    function buildExampleBlock(r){
-      const lines = [];
-      const simp = get(r, "example_simp");
-      const trad = get(r, "example_trad");
-      const pin  = get(r, "example_pin");
-      const vi   = get(r, "example_vi");
-      const sinoEx = get(r, "sino_ex");
-      const en   = get(r, "example_en");
-      const ipa  = get(r, "example_en_ipa");
-
-      if (simp) lines.push(simp);
-      if (trad) lines.push(trad);
-      if (pin)  lines.push(pin);
-      if (vi)   lines.push(vi, "");
-      if (sinoEx) lines.push(sinoEx);
-
-      if ((en || ipa) && lines.length) lines.push("");
-
-      if (en)   lines.push(en);
-      if (ipa)  lines.push(ipa);
-
-      return lines.join("\n");
-    }
-
-    function show(i){
-      if (!viewData.length) return;
-      idx = i; lastIdx = i;
-      const r = viewData[i];
-
-      const phrase = get(r, "phrase");
-      const pinyin = get(r, "pinyin");
-      const vnDef  = get(r, "vn_def");
-      const sinoV  = get(r, "sino_viet");
-      const level  = normLevel(r[FIELDS.level]);
-      const number = get(r, "number");
-
-      mainEl.textContent = phrase || "—";
-      subEl.textContent  = pinyin;
-
-      meaningEl.textContent  = vnDef || "";
-      sinoVEl.textContent    = sinoV || "";
-      exampleEl.textContent  = buildExampleBlock(r);
-
-      posEl.textContent = `${i + 1} / ${viewData.length}`;
-      lvlMetaEl.textContent = level ? `• ${level}` : "";
-      numMetaEl.textContent = number ? `• #${number}` : "";
-
-      cardEl.classList.remove("is-back");
-      startTimer(true);
-    }
-
-    async function loadXlsx(url){
-      const buf = await fetch(url, { cache:"no-store" }).then(r => {
-        if (!r.ok) throw new Error("Failed to fetch Excel file: " + url + " (" + r.status + ")");
-        return r.arrayBuffer();
+      const onInteract = () => startTimer(true);
+      [btnPrev, btnNext, btnFlip, btnRandom, cardEl, selLevel].forEach(el => {
+        el.addEventListener("click", onInteract);
+        el.addEventListener("change", onInteract);
       });
-      const wb = XLSX.read(buf, { type:"array" });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      return XLSX.utils.sheet_to_json(sheet, { defval:"" });
-    }
 
-    function populateLevels(rows){
-      rows.forEach(r => r.__Level = normLevel(r[FIELDS.level]));
-      const levels = Array.from(new Set(rows.map(r => r.__Level).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'vi'));
-      selLevel.innerHTML = `<option value="__all__">All Levels</option>` + levels.map(l => `<option>${l}</option>`).join("");
-      selLevel.onchange = () => applyFilter(selLevel.value);
-    }
+      btnFlip.onclick = () => cardEl.classList.toggle("is-back");
+      btnNext.onclick = () => show((idx + 1) % viewData.length);
+      btnPrev.onclick = () => show((idx - 1 + viewData.length) % viewData.length);
+      btnRandom.onclick = () => show(pickRandomIndex());
+      cardEl.onclick = () => cardEl.classList.toggle("is-back");
 
-    function applyFilter(levelVal){
-      viewData = (levelVal === "__all__") ? fullData.slice() : fullData.filter(r => r.__Level === levelVal);
-      if (!viewData.length) {
-        mainEl.textContent = "—"; subEl.textContent = ""; meaningEl.textContent = ""; sinoVEl.textContent = ""; exampleEl.textContent = "";
-        posEl.textContent = "0 / 0"; lvlMetaEl.textContent = ""; numMetaEl.textContent = ""; timerEl.textContent = "";
-        return;
+      let paused = false;
+      btnPause.onclick = () => {
+        paused = !paused;
+        btnPause.textContent = paused ? "Resume" : "Pause";
+        if (paused) {
+          if (tHandle) clearInterval(tHandle);
+          timerEl.textContent = `• Paused (${countdown}s left)`;
+        } else {
+          startTimer(false);
+        }
+      };
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight") { onInteract(); btnNext.click(); }
+        if (e.key === "ArrowLeft") { onInteract(); btnPrev.click(); }
+        if (e.key.toLowerCase() === "f") { onInteract(); btnFlip.click(); }
+        if (e.code === "Space") { e.preventDefault(); btnPause.click(); }
+      });
+
+      let fullData = [];
+      let viewData = [];
+      let idx = -1, lastIdx = -1;
+
+      let countdown = 15;
+      let tHandle = null;
+      function startTimer(reset = false) {
+        if (tHandle) clearInterval(tHandle);
+        if (reset) countdown = 15;
+
+        if (paused) {
+          timerEl.textContent = `• Paused (${countdown}s left)`;
+          return;
+        }
+
+        timerEl.textContent = `• Auto-next in ${countdown}s`;
+        tHandle = setInterval(() => {
+          countdown--;
+          timerEl.textContent = `• Auto-next in ${countdown}s`;
+          if (countdown <= 0) {
+            clearInterval(tHandle);
+            btnNext.click();
+            startTimer(true);
+          }
+        }, 1000);
       }
-      show(pickRandomIndex());
-    }
 
-    (async () => {
-      try {
-        fullData = await loadXlsx(XLSX_URL);
-      } catch (e) {
-        console.error(e);
-        // Fallback sample row so the UI isn't empty
-        fullData = [
-          { "Level":"HSK 1 (sample)", "Number":1, "Phrase":"我", "Pinyin":"wǒ", "Example":"我爱学习。", "Ex-vi":"Tôi yêu học tập.", "VnDef":"Tôi", "Ex-TW":"我愛學習。", "ExPinyin":"wǒ ài xué xí.", "Ex-En":"I love learning.", "Ex-EnIPA":"/aɪ ləv ˈlərnɪŋ./", "SinoEx":"NGÃ ÁI HỌC TẬP.", "SinoViet":"NGÃ" }
-        ];
+      function norm(s) { return (s == null ? "" : String(s)).trim(); }
+      function normLevel(s) { return norm(s).replace(/\s+/g, " "); }
+      function get(row, key) { return norm(row[FIELDS[key]]); }
+
+      function pickRandomIndex() {
+        if (viewData.length <= 1) return 0;
+        let i = Math.floor(Math.random() * viewData.length);
+        if (i === lastIdx) i = (i + 1) % viewData.length;
+        return i;
       }
-      populateLevels(fullData);
-      applyFilter("__all__");
+
+      function buildExampleBlock(r) {
+        const lines = [];
+        const simp = get(r, "example_simp");
+        const trad = get(r, "example_trad");
+        const pin = get(r, "example_pin");
+        const vi = get(r, "example_vi");
+        const sinoEx = get(r, "sino_ex");
+        const en = get(r, "example_en");
+        const ipa = get(r, "example_en_ipa");
+
+        if (simp) lines.push(simp);
+        if (trad) lines.push(trad);
+        if (pin) lines.push(pin);
+        if (vi) lines.push(vi, "");
+        if (sinoEx) lines.push(sinoEx);
+
+        if ((en || ipa) && lines.length) lines.push("");
+
+        if (en) lines.push(en);
+        if (ipa) lines.push(ipa);
+
+        return lines.join("\n");
+      }
+
+      function show(i) {
+        if (!viewData.length) return;
+        idx = i; lastIdx = i;
+        const r = viewData[i];
+
+        const phrase = get(r, "phrase");
+        const pinyin = get(r, "pinyin");
+        const vnDef = get(r, "vn_def");
+        const sinoV = get(r, "sino_viet");
+        const level = normLevel(r[FIELDS.level]);
+        const number = get(r, "number");
+
+        mainEl.textContent = phrase || "—";
+        subEl.textContent = pinyin;
+
+        meaningEl.textContent = vnDef || "";
+        sinoVEl.textContent = sinoV || "";
+        exampleEl.textContent = buildExampleBlock(r);
+
+        posEl.textContent = `${i + 1} / ${viewData.length}`;
+        lvlMetaEl.textContent = level ? `• ${level}` : "";
+        numMetaEl.textContent = number ? `• #${number}` : "";
+
+        cardEl.classList.remove("is-back");
+        startTimer(true);
+      }
+
+      async function loadXlsx(url) {
+        const buf = await fetch(url, { cache: "no-store" }).then(r => {
+          if (!r.ok) throw new Error("Failed to fetch Excel file: " + url + " (" + r.status + ")");
+          return r.arrayBuffer();
+        });
+        const wb = XLSX.read(buf, { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        return XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      }
+
+      function populateLevels(rows) {
+        rows.forEach(r => r.__Level = normLevel(r[FIELDS.level]));
+        const levels = Array.from(new Set(rows.map(r => r.__Level).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+        selLevel.innerHTML = `<option value="__all__">All Levels</option>` + levels.map(l => `<option>${l}</option>`).join("");
+        selLevel.onchange = () => applyFilter(selLevel.value);
+      }
+
+      function applyFilter(levelVal) {
+        viewData = (levelVal === "__all__") ? fullData.slice() : fullData.filter(r => r.__Level === levelVal);
+        if (!viewData.length) {
+          mainEl.textContent = "—"; subEl.textContent = ""; meaningEl.textContent = ""; sinoVEl.textContent = ""; exampleEl.textContent = "";
+          posEl.textContent = "0 / 0"; lvlMetaEl.textContent = ""; numMetaEl.textContent = ""; timerEl.textContent = "";
+          return;
+        }
+        show(pickRandomIndex());
+      }
+
+      (async () => {
+        try {
+          fullData = await loadXlsx(XLSX_URL);
+        } catch (e) {
+          console.error(e);
+          // Fallback sample row so the UI isn't empty
+          fullData = [
+            { "Level": "HSK 1 (sample)", "Number": 1, "Phrase": "我", "Pinyin": "wǒ", "Example": "我爱学习。", "Ex-vi": "Tôi yêu học tập.", "VnDef": "Tôi", "Ex-TW": "我愛學習。", "ExPinyin": "wǒ ài xué xí.", "Ex-En": "I love learning.", "Ex-EnIPA": "/aɪ ləv ˈlərnɪŋ./", "SinoEx": "NGÃ ÁI HỌC TẬP.", "SinoViet": "NGÃ" }
+          ];
+        }
+        populateLevels(fullData);
+        applyFilter("__all__");
+      })();
     })();
-  })();
   </script>
 </body>
-</html>
 
+</html>
