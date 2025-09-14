@@ -59,9 +59,9 @@ class SiteHeader extends HTMLElement {
 }
 customElements.define('site-header', SiteHeader);
 
-// === Back-to-parent pill (centered; dark-mode-safe; skips 404 parents) ===
+// === Back-to-parent pill (centered; dark-mode via explicit theme only; skips 404 parents) ===
 document.addEventListener("DOMContentLoaded", () => {
-  // Inject CSS once (strong selectors; override prose & visited)
+  // Inject CSS once (no @media fallback; Light/Dark driven only by your theme class/attr)
   if (!document.getElementById("mg-back-pill-style")) {
     const style = document.createElement("style");
     style.id = "mg-back-pill-style";
@@ -77,28 +77,25 @@ document.addEventListener("DOMContentLoaded", () => {
       a.mg-back-pill:hover { background:#e2e8f0; }
       a.mg-back-pill:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
 
-      /* Dark mode – support multiple togglers + OS dark (unless forced light) */
+      /* Dark mode ONLY when your site explicitly sets it */
       html.dark a.mg-back-pill,
       body.dark a.mg-back-pill,
-      [data-theme="dark"] a.mg-back-pill { background:#1f2937; color:#e5e7eb !important; }
+      [data-theme="dark"] a.mg-back-pill {
+        background:#1f2937; color:#e5e7eb !important;
+      }
       html.dark a.mg-back-pill:hover,
       body.dark a.mg-back-pill:hover,
-      [data-theme="dark"] a.mg-back-pill:hover { background:#374151; }
-
-      @media (prefers-color-scheme: dark) {
-        html:not(.light) a.mg-back-pill { background:#1f2937; color:#e5e7eb !important; }
-        html:not(.light) a.mg-back-pill:hover { background:#374151; }
+      [data-theme="dark"] a.mg-back-pill:hover {
+        background:#374151;
       }
     `;
     document.head.appendChild(style);
   }
 
-  // Normalize path (drop /index.html and trailing slashes)
   const normalize = p => (p.replace(/\/index\.html$/i, "").replace(/\/+$/, "") || "/");
   const currentPath = normalize(location.pathname);
   if (currentPath === "/") return; // hide on Home
 
-  // Generate parents list: /a/b/c -> ["/a/b/","/a/","/"]
   function parentsOf(path) {
     const segs = path.split("/").filter(Boolean);
     const out = [];
@@ -110,17 +107,15 @@ document.addEventListener("DOMContentLoaded", () => {
     return out;
   }
 
-  // URL existence check
   async function exists(url) {
     try {
-      const r = await fetch(url, { method: "HEAD", cache: "no-store" });
-      if (r.ok) return true;
-      const r2 = await fetch(url, { method: "GET", cache: "no-store" });
-      return r2.ok;
+      const h = await fetch(url, { method:"HEAD", cache:"no-store" });
+      if (h.ok) return true;
+      const g = await fetch(url, { method:"GET", cache:"no-store" });
+      return g.ok;
     } catch { return false; }
   }
 
-  // Find nearest existing ancestor
   async function resolveParent(path) {
     for (const p of parentsOf(path)) {
       if (p === "/") return "/";
@@ -136,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const seg = parentPath.split("/").filter(Boolean).pop() || "home";
     const label = seg === "home" ? "Back to Home"
-      : "Back to " + seg.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      : "Back to " + seg.replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase());
 
     const link = document.createElement("a");
     link.href = parentPath;
@@ -148,12 +143,11 @@ document.addEventListener("DOMContentLoaded", () => {
     holder.className = "mg-back-holder";
     holder.appendChild(link);
 
-    // Keep inside the same max-width container as content
     const main = document.querySelector("main.container") ||
-      document.querySelector("main.prose") ||
-      document.querySelector("main");
+                 document.querySelector("main.prose") ||
+                 document.querySelector("main");
     if (main) {
-      if (/\bcontainer\b/.test(main.className || "")) {
+      if (/\bcontainer\b/.test(main.className||"")) {
         main.prepend(holder);
       } else {
         const wrap = document.createElement("div");
@@ -171,9 +165,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-// === Pillify external media links (dark-mode-safe; prose-friendly) ===
+// === Pillify external media links (dark-mode via explicit theme only; prose-friendly) ===
 document.addEventListener("DOMContentLoaded", () => {
-  // CSS once
   if (!document.getElementById("mg-pills-style")) {
     const style = document.createElement("style");
     style.id = "mg-pills-style";
@@ -188,20 +181,19 @@ document.addEventListener("DOMContentLoaded", () => {
       a.mg-pill:hover { background:#e2e8f0; }
       a.mg-pill:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
 
-      /* Dark mode variants */
+      /* Dark mode ONLY when your site explicitly sets it */
       html.dark a.mg-pill,
       body.dark a.mg-pill,
-      [data-theme="dark"] a.mg-pill { background:#1f2937; color:#e5e7eb !important; }
+      [data-theme="dark"] a.mg-pill {
+        background:#1f2937; color:#e5e7eb !important;
+      }
       html.dark a.mg-pill:hover,
       body.dark a.mg-pill:hover,
-      [data-theme="dark"] a.mg-pill:hover { background:#374151; }
-
-      @media (prefers-color-scheme: dark) {
-        html:not(.light) a.mg-pill { background:#1f2937; color:#e5e7eb !important; }
-        html:not(.light) a.mg-pill:hover { background:#374151; }
+      [data-theme="dark"] a.mg-pill:hover {
+        background:#374151;
       }
 
-      /* Pill list layout + remove bullets (even with .prose) */
+      /* List layout + remove bullets even under .prose */
       .mg-pill-list {
         list-style:none; margin:.5rem 0 0 0; padding:0;
         display:flex; flex-wrap:wrap; gap:.5rem;
@@ -215,7 +207,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const main = document.querySelector("main") || document.body;
   if (!main) return;
 
-  // Which domains auto-pillify
   const pillDomains = [
     /(?:^|\.)youtube\.com$/i, /(?:^|\.)youtu\.be$/i,
     /(?:^|\.)facebook\.com$/i,
@@ -230,7 +221,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch { return false; }
   };
 
-  // Lists: make a row of pills when all links are media or container opts in
   main.querySelectorAll("ul, ol").forEach(list => {
     if (list.closest("nav, site-header, site-footer, header, footer")) return;
     const optIn = list.classList.contains("pill-links") || list.dataset.pillify === "all";
@@ -243,7 +233,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Standalone anchors: pillify if inside opt-in container or if media link
   main.querySelectorAll("p a[href], div a[href]").forEach(a => {
     if (a.closest(".mg-pill-list, nav, header, footer, site-header, site-footer")) return;
     const containerOptIn = a.closest(".pill-links,[data-pillify='all']");
