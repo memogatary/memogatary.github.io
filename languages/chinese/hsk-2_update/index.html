@@ -13,12 +13,17 @@
     <style>
         /* Fixed-height viewer window with its own scrollbar */
         #viewer-viewport {
-            height: 78vh;
+            /* height: 78vh;  <-- remove this */
+            max-height: 78vh;
+            /* shrink to content; scroll only if taller */
+            height: auto;
+            /* let it fit content when short */
             overflow: auto;
             border: 1px solid #e5e7eb;
             border-radius: .5rem;
             background: #fff;
         }
+
 
         /* Always a single row; never wrap to a second row */
         #pdf-render-area {
@@ -254,7 +259,7 @@
             canvas2().style.display = 'none';
             canvas1().width = canvas1().height = 0;
             canvas2().width = canvas2().height = 0;
-            setLoading('Loading PDF...'); showBusy(true, 'Preparing…');
+            setLoading('Loading material...'); showBusy(true, 'Preparing…');
             const { pdfjsLib } = window;
             if (!pdfjsLib) { setStatus('PDF.js not loaded.'); showBusy(false); return; }
             if (!pdfjsWorkerSet) {

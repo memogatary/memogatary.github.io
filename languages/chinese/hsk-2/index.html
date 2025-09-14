@@ -247,7 +247,7 @@
 
         /* ---- Rendering (two-page spread or single) ---- */
         async function loadAndOpen(fileId) {
-            setLoading('Loading PDF...'); showBusy(true, 'Preparing…');
+            setLoading('Loading material...'); showBusy(true, 'Preparing…');
             const { pdfjsLib } = window;
             if (!pdfjsLib) { setStatus('PDF.js not loaded.'); showBusy(false); return; }
             if (!pdfjsWorkerSet) {
