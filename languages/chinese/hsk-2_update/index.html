@@ -208,25 +208,29 @@
         }
 
 
-        /* ---- High-DPI canvas rendering (safe against PDF.js downsizing) ---- */
+        /* HiDPI rendering with desktop floor + PDF.js safety cap */
         async function renderPageToCanvas(page, canvas, viewport) {
             const ctx = canvas.getContext('2d', { alpha: false });
 
-            const MAX_PIXELS = 16_000_000; // keep under 16M to avoid PDF.js internal downscale
+            const MAX_PIXELS = 16_000_000;          // avoid internal downscale
+            const devDpr = window.devicePixelRatio || 1;
+            const isDesktop = matchMedia('(pointer: fine)').matches && window.innerWidth >= 1024;
+
+            // Floor DPR on desktop so PC looks crisp too
+            let dpr = isDesktop ? Math.max(devDpr, 1.5) : devDpr;
+
+            // Compute backing-store size; reduce gently if we exceed the cap
             const baseW = viewport.width;
             const baseH = viewport.height;
-
-            // Start at DPR, reduce a bit if we exceed max pixels
-            let dpr = window.devicePixelRatio || 1;
             let bw = Math.round(baseW * dpr);
             let bh = Math.round(baseH * dpr);
             while (bw * bh > MAX_PIXELS && dpr > 1) {
-                dpr = Math.max(1, dpr - 0.25);       // step down gently
+                dpr = Math.max(1, dpr - 0.25);
                 bw = Math.round(baseW * dpr);
                 bh = Math.round(baseH * dpr);
             }
 
-            // Set backing store size (sharp) and CSS size (layout)
+            // Backing size (sharp) vs CSS size (layout)
             canvas.width = bw;
             canvas.height = bh;
             canvas.style.width = Math.round(bw / dpr) + 'px';
@@ -235,9 +239,10 @@
             await page.render({
                 canvasContext: ctx,
                 viewport,
-                transform: [dpr, 0, 0, dpr, 0, 0],   // draw at effective DPR
+                transform: [dpr, 0, 0, dpr, 0, 0],
             }).promise;
         }
+
 
 
 
@@ -282,6 +287,9 @@
             const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
             const gap = parseFloat(style.gap) || 0;
             let availableWidth = renderArea.clientWidth - paddingX;
+            const borderPerCanvas = 2; // 1px left + 1px right
+            availableWidth -= twoPageMode ? (borderPerCanvas * 2) : borderPerCanvas;
+
 
             // account for 1px border on each canvas (left+right)
             const borderPerCanvas = 2; // px
