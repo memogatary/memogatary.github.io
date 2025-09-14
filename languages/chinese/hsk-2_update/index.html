@@ -248,6 +248,11 @@
 
         /* ---- Rendering (two-page spread or single) ---- */
         async function loadAndOpen(fileId) {
+            // Hide/zero canvases while we load/parse the PDF
+            canvas1().style.display = 'none';
+            canvas2().style.display = 'none';
+            canvas1().width = canvas1().height = 0;
+            canvas2().width = canvas2().height = 0;
             setLoading('Loading PDF...'); showBusy(true, 'Preparing…');
             const { pdfjsLib } = window;
             if (!pdfjsLib) { setStatus('PDF.js not loaded.'); showBusy(false); return; }
