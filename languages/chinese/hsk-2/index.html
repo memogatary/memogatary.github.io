@@ -140,7 +140,7 @@
 
     <script>
         /***** CONFIG *****/
-        const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbxLBFAOVnGGmCpmjsaFZ_vgXxiijbRpZjbWjxm6_FojIzWeMKZ3MVHbuMcxZvOaQDB9Tw/exec';
+        const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbx-YZlGA85P04p9OCNNxacfAgqvS2KO9B8mQ1aCDMl-NV0K5A0e3xxWDtbsdJXgQ4x1nQ/exec';
         const FOLDER_ID = '1fxVRg5zDlf-Zre6uy8ac48C3ILHtaPfF';
         const VERSION = 'v7';
 
@@ -193,6 +193,23 @@
             return new Uint8Array(buf);
         }
 
+        function b64ToBytes(b64) {
+            b64 = (b64 || '').replace(/[\r\n\s]+/g, '');
+            while (b64.length % 4 !== 0) b64 += '=';
+            const bin = atob(b64);
+            const out = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+            return out;
+        }
+
+        async function fetchPdfBytes(fileId) {
+            const url = `${APPS_SCRIPT_BASE}?mode=fileB64&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const b64 = await res.text();          // base64 string
+            return b64ToBytes(b64);                // Uint8Array
+        }
+
 
         /* ---- High-DPI canvas rendering ---- */
         async function renderPageToCanvas(page, canvas, viewport) {
@@ -238,6 +255,7 @@
             let data;
             try { data = await fetchPdfBytes(fileId); }
             catch (e) { showBusy(false); setStatus('Download error: ' + e.message); return; }
+
 
 
             showBusy(true, 'Processing…');
