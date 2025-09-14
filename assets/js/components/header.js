@@ -28,7 +28,7 @@ class SiteHeader extends HTMLElement {
             <div class="dropdown" role="none">
               <button aria-haspopup="true" aria-expanded="false">Languages ▾</button>
               <div class="dropdown-panel" role="menu">
-                <a role="menuitem" href="/languages/chinese/"><strong>Chinese</strong><small>Cards, notes, HSK</small></a>
+                <a role="menuitem" href="/languages/chinese/"><strong>Chinese</strong><small>Vocabulary, FlashCards, Notes</small></a>
               </div>
             </div>
 
