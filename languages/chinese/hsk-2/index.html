@@ -18,7 +18,45 @@
       border-radius: 0.5rem;
       background: #fff;
     }
-    #pdf-viewer canvas { max-width: 100%; height: auto; border: 1px solid #ddd; }
+
+    /* Make the two canvases sit side-by-side in a single row */
+    #pdf-render-area {
+      display: flex;             /* enforce row layout */
+      flex-wrap: nowrap;         /* never wrap into a second row */
+      align-items: flex-start;
+      gap: 1rem;                 /* space between pages */
+      padding: .5rem;            /* padding already in Tailwind; keep here as fallback */
+      background: #fff;
+      border-top-left-radius: .5rem;
+      border-top-right-radius: .5rem;
+    }
+
+    /* Ensure canvases behave as flex items and don't get 100%-width from global styles */
+    #pdf-render-area canvas {
+      flex: 0 0 auto;            /* fixed-size flex items */
+      display: block;
+      max-width: none;           /* use the width we set in JS (viewport width) */
+      height: auto;
+      border: 1px solid #ddd;
+    }
+
+    /* Footer nav bar */
+    #pdf-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: .5rem;
+      border-top: 1px solid #e5e7eb;
+      background: #f9fafb;
+      border-bottom-left-radius: .5rem;
+      border-bottom-right-radius: .5rem;
+    }
+
+    /* If Tailwind Typography `.prose` adds margins to canvas, neutralize them in the viewer */
+    .prose #pdf-render-area canvas {
+      margin: 0 !important;
+    }
+
     #pdf-nav button:disabled { opacity:.5; cursor:not-allowed; }
   </style>
 </head>
@@ -74,12 +112,13 @@
 
       <!-- Fixed-height viewport -->
       <div id="viewer-viewport" class="mt-3 p-2">
-        <!-- PAGINATED VIEW (inside viewport) -->
-        <div id="pdf-render-area" class="justify-center items-start gap-4 p-2 bg-white rounded-t-lg">
+        <!-- Two-page spread lives here -->
+        <div id="pdf-render-area" class="bg-white rounded-t-lg">
           <canvas id="pdf-canvas-1"></canvas>
           <canvas id="pdf-canvas-2"></canvas>
         </div>
-        <div id="pdf-nav" class="flex gap-3 justify-between items-center p-2 border-t bg-gray-50 rounded-b-lg">
+
+        <div id="pdf-nav" class="rounded-b-lg">
           <div class="flex gap-2">
             <button id="prev-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">&lt; Previous</button>
             <button id="next-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">Next &gt;</button>
@@ -188,7 +227,7 @@
       return out;
     }
 
-    /* ---- Rendering: Paginated ---- */
+    /* ---- Rendering (Two-page spread or single page based on width) ---- */
     async function loadAndOpen(fileId){
       setLoading('Loading PDF...'); showBusy(true, 'Preparing…');
       const { pdfjsLib } = window;
@@ -196,6 +235,8 @@
       if (!pdfjsWorkerSet){
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        // Quiet down TrueType warnings
+        try { pdfjsLib.setVerbosity?.(pdfjsLib.VerbosityLevel.ERROR); } catch {}
         pdfjsWorkerSet = true;
       }
 
@@ -212,11 +253,15 @@
       // initial render
       currentPage = 1;
       showBusy(true, 'Rendering…');
-      renderPages(currentPage).then(updateNavButtons).finally(()=>showBusy(false));
+      await renderPages(currentPage);
+      updateNavButtons();
+      showBusy(false);
     }
 
     async function renderPages(startPage){
       if (!pdfDoc) return;
+      setModeFromViewport();
+
       startPage = Math.max(1, Math.min(startPage, pdfDoc.numPages));
 
       const renderArea = $('pdf-render-area');
@@ -287,15 +332,16 @@
 
       // Recompute 1–2 page layout on resize
       window.addEventListener('resize', async ()=>{
-        const oldTwoPage = twoPageMode;
+        const oldTwo = twoPageMode;
         setModeFromViewport();
         if (!pdfDoc) return;
-        // If entering twoPageMode, ensure we start from an odd page
-        if (twoPageMode && currentPage % 2 === 0) currentPage -= 1;
-        if (oldTwoPage !== twoPageMode) {
-          await renderPages(currentPage); updateNavButtons();
+        if (twoPageMode && currentPage % 2 === 0) currentPage -= 1; // start on left page in spread
+        if (oldTwo !== twoPageMode) {
+          await renderPages(currentPage);
+          updateNavButtons();
         } else {
-          await renderPages(currentPage); updateNavButtons();
+          await renderPages(currentPage);
+          updateNavButtons();
         }
       });
 
@@ -306,7 +352,7 @@
         populateSelect(list);
         setStatus(`${list.length} materials found.`);
         $('pdf-select').addEventListener('change', (e)=> loadAndOpen(e.target.value));
-        await loadAndOpen(list[0].id); // loads default PDF
+        await loadAndOpen(list[0].id); // load default
       } catch (err) {
         setStatus(`Failed: ${err.message}`);
       }
