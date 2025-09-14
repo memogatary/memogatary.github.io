@@ -291,11 +291,6 @@
             availableWidth -= twoPageMode ? (borderPerCanvas * 2) : borderPerCanvas;
 
 
-            // account for 1px border on each canvas (left+right)
-            const borderPerCanvas = 2; // px
-            availableWidth -= twoPageMode ? (borderPerCanvas * 2) : borderPerCanvas;
-
-
             const page1 = await pdfDoc.getPage(startPage);
             let totalPdfWidth = page1.getViewport({ scale: 1 }).width;
 
