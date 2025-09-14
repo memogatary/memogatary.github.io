@@ -59,47 +59,97 @@ class SiteHeader extends HTMLElement {
 }
 customElements.define('site-header', SiteHeader);
 
-// --- Back-to-parent pill button (site-wide) ---
+// --- Back-to-parent pill (centered; handles missing parent index.html) ---
 document.addEventListener("DOMContentLoaded", () => {
-  // Normalize current path
-  let path = location.pathname.replace(/\/index\.html$/i, "").replace(/\/+$/, "");
-  if (path === "") path = "/";
+  // Normalize a path: remove /index.html and trailing slashes
+  const normalize = (p) => {
+    p = p.replace(/\/index\.html$/i, "").replace(/\/+$/, "");
+    return p || "/";
+  };
 
-  // Hide on the home page
-  if (path === "/") return;
+  const currentPath = normalize(location.pathname);
+  if (currentPath === "/") return; // hide on Home
 
-  // Compute parent path (e.g., /languages/chinese/hsk -> /languages/chinese/)
-  const cut = path.lastIndexOf("/");
-  let parentPath = cut > 0 ? path.slice(0, cut) : "/";
-  if (parentPath.length > 1 && !parentPath.endsWith("/")) parentPath += "/";
-
-  // Human label from the parent folder name
-  const seg = parentPath.split("/").filter(Boolean).pop() || "home";
-  const labelText =
-    seg === "home"
-      ? "Back to Home"
-      : "Back to " + seg.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-
-  // Build a pill-style button (Tailwind classes)
-  const wrapper = document.createElement("a");
-  wrapper.href = parentPath;
-  wrapper.setAttribute("aria-label", labelText);
-  wrapper.className = "container block mt-3"; // keep aligned with page content
-
-  wrapper.innerHTML = `
-    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full
-                 bg-slate-100 text-slate-700 hover:bg-slate-200
-                 transition shadow-sm">
-      <span aria-hidden="true">←</span>
-      <span>${labelText}</span>
-    </span>
-  `;
-
-  // Insert right under the site header (fallback: prepend to body)
-  const headerEl = document.querySelector("site-header");
-  if (headerEl) {
-    headerEl.insertAdjacentElement("afterend", wrapper);
-  } else {
-    document.body.prepend(wrapper);
+  // Build list of ancestor candidates for a path
+  function parentsOf(path) {
+    const segs = path.split("/").filter(Boolean);
+    const list = [];
+    for (let i = segs.length - 1; i >= 0; i--) {
+      const parent = "/" + segs.slice(0, i).join("/") + "/";
+      list.push(parent === "//" ? "/" : parent);
+    }
+    if (!list.includes("/")) list.push("/");
+    return list;
   }
+
+  // Check if a URL exists (HEAD first; fallback to GET if HEAD not allowed)
+  async function exists(url) {
+    try {
+      const r = await fetch(url, { method: "HEAD", cache: "no-store" });
+      if (r.ok) return true;
+      const r2 = await fetch(url, { method: "GET", cache: "no-store" });
+      return r2.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  // Find the nearest ancestor that actually resolves
+  async function resolveParent(path) {
+    const candidates = parentsOf(path);
+    for (const p of candidates) {
+      if (p === "/") return "/";                // Home always exists
+      if (await exists(p)) return p;            // try folder/
+      if (await exists(p + "index.html")) return p; // try folder/index.html
+    }
+    return "/"; // fallback
+  }
+
+  (async () => {
+    const parentPath = await resolveParent(currentPath);
+
+    // Make label from the parent folder name
+    const seg = parentPath.split("/").filter(Boolean).pop() || "home";
+    const labelText =
+      seg === "home"
+        ? "Back to Home"
+        : "Back to " + seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+    // Create the pill button
+    const link = document.createElement("a");
+    link.href = parentPath;
+    link.setAttribute("aria-label", labelText);
+    link.className =
+      "inline-flex items-center gap-2 px-3 py-1.5 rounded-full " +
+      "bg-slate-100 text-slate-700 hover:bg-slate-200 transition shadow-sm";
+    link.innerHTML = `<span aria-hidden="true">←</span><span>${labelText}</span>`;
+
+    // Insert INSIDE the page's main container so it lines up with content width
+    const main = document.querySelector("main.container") ||
+                 document.querySelector("main.prose") ||
+                 document.querySelector("main");
+
+    if (main) {
+      // If main already has the container class, just add a small top margin wrapper
+      if (/\bcontainer\b/.test(main.className || "")) {
+        const pad = document.createElement("div");
+        pad.className = "mt-3";
+        pad.appendChild(link);
+        main.prepend(pad);
+      } else {
+        const holder = document.createElement("div");
+        holder.className = "container mt-3";
+        holder.appendChild(link);
+        main.prepend(holder);
+      }
+    } else {
+      // Fallback: place right below the header, wrapped in a container
+      const holder = document.createElement("div");
+      holder.className = "container mt-3";
+      holder.appendChild(link);
+      const headerEl = document.querySelector("site-header");
+      if (headerEl) headerEl.insertAdjacentElement("afterend", holder);
+      else document.body.prepend(holder);
+    }
+  })();
 });
