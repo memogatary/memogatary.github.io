@@ -59,8 +59,29 @@ class SiteHeader extends HTMLElement {
 }
 customElements.define('site-header', SiteHeader);
 
-// --- Back-to-parent pill (centered; handles missing parent index.html) ---
+// --- Back-to-parent pill (centered; works without Tailwind; handles missing parent index.html) ---
 document.addEventListener("DOMContentLoaded", () => {
+  // Inject minimal CSS once (no Tailwind needed)
+  if (!document.getElementById("mg-back-pill-style")) {
+    const css = `
+      .mg-back-holder { margin-top: .75rem; }
+      .mg-back-pill {
+        display:inline-flex; align-items:center; gap:.5rem;
+        padding:.375rem .75rem; border-radius:9999px;
+        background:#f1f5f9; color:#334155; text-decoration:none;
+        box-shadow:0 1px 2px rgba(0,0,0,.06); transition:background .2s ease,color .2s ease;
+      }
+      .mg-back-pill:hover { background:#e2e8f0; }
+      /* Dark-mode friendly if your site toggles a .dark class or OS dark */
+      html.dark .mg-back-pill { background:#1f2937; color:#e5e7eb; }
+      html.dark .mg-back-pill:hover { background:#374151; }
+    `.trim();
+    const style = document.createElement("style");
+    style.id = "mg-back-pill-style";
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
   // Normalize a path: remove /index.html and trailing slashes
   const normalize = (p) => {
     p = p.replace(/\/index\.html$/i, "").replace(/\/+$/, "");
@@ -82,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return list;
   }
 
-  // Check if a URL exists (HEAD first; fallback to GET if HEAD not allowed)
+  // Check if a URL exists (HEAD first; fallback to GET if needed)
   async function exists(url) {
     try {
       const r = await fetch(url, { method: "HEAD", cache: "no-store" });
@@ -98,58 +119,59 @@ document.addEventListener("DOMContentLoaded", () => {
   async function resolveParent(path) {
     const candidates = parentsOf(path);
     for (const p of candidates) {
-      if (p === "/") return "/";                // Home always exists
-      if (await exists(p)) return p;            // try folder/
-      if (await exists(p + "index.html")) return p; // try folder/index.html
+      if (p === "/") return "/";                 // Home always exists
+      if (await exists(p)) return p;             // e.g., /languages/
+      if (await exists(p + "index.html")) return p; // e.g., /languages/index.html
     }
     return "/"; // fallback
   }
 
   (async () => {
-    const parentPath = await resolveParent(currentPath);
+    const parentPathRaw = await resolveParent(currentPath);
+    let parentPath = parentPathRaw;
+    if (parentPath.length > 1 && !parentPath.endsWith("/")) parentPath += "/";
 
-    // Make label from the parent folder name
+    // Label from parent folder name
     const seg = parentPath.split("/").filter(Boolean).pop() || "home";
-    const labelText =
-      seg === "home"
-        ? "Back to Home"
-        : "Back to " + seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const labelText = seg === "home"
+      ? "Back to Home"
+      : "Back to " + seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-    // Create the pill button
+    // Create pill
     const link = document.createElement("a");
     link.href = parentPath;
     link.setAttribute("aria-label", labelText);
-    link.className =
-      "inline-flex items-center gap-2 px-3 py-1.5 rounded-full " +
-      "bg-slate-100 text-slate-700 hover:bg-slate-200 transition shadow-sm";
+    link.className = "mg-back-pill";
     link.innerHTML = `<span aria-hidden="true">←</span><span>${labelText}</span>`;
 
-    // Insert INSIDE the page's main container so it lines up with content width
+    // Insert INSIDE the page's main container so it aligns with content width
     const main = document.querySelector("main.container") ||
                  document.querySelector("main.prose") ||
                  document.querySelector("main");
 
+    const holder = document.createElement("div");
+    holder.className = "mg-back-holder";
+    holder.appendChild(link);
+
     if (main) {
-      // If main already has the container class, just add a small top margin wrapper
+      // If main already has a container width, just prepend
       if (/\bcontainer\b/.test(main.className || "")) {
-        const pad = document.createElement("div");
-        pad.className = "mt-3";
-        pad.appendChild(link);
-        main.prepend(pad);
-      } else {
-        const holder = document.createElement("div");
-        holder.className = "container mt-3";
-        holder.appendChild(link);
         main.prepend(holder);
+      } else {
+        // Wrap in a container for proper centering
+        const wrap = document.createElement("div");
+        wrap.className = "container";
+        wrap.appendChild(holder);
+        main.prepend(wrap);
       }
     } else {
-      // Fallback: place right below the header, wrapped in a container
-      const holder = document.createElement("div");
-      holder.className = "container mt-3";
-      holder.appendChild(link);
+      // Fallback below header
+      const wrap = document.createElement("div");
+      wrap.className = "container";
+      wrap.appendChild(holder);
       const headerEl = document.querySelector("site-header");
-      if (headerEl) headerEl.insertAdjacentElement("afterend", holder);
-      else document.body.prepend(holder);
+      if (headerEl) headerEl.insertAdjacentElement("afterend", wrap);
+      else document.body.prepend(wrap);
     }
   })();
 });
