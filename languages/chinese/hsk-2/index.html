@@ -10,6 +10,14 @@
   <script type="module" src="/assets/js/components/footer.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Fixed-height viewer window with its own scrollbar */
+    #viewer-viewport {
+      height: 78vh;              /* tweak to taste (e.g., 70–85vh) */
+      overflow: auto;
+      border: 1px solid #e5e7eb; /* gray-200 */
+      border-radius: 0.5rem;
+      background: #fff;
+    }
     #pdf-viewer canvas { max-width: 100%; height: auto; border: 1px solid #ddd; }
     #pdf-nav button:disabled { opacity:.5; cursor:not-allowed; }
   </style>
@@ -28,18 +36,18 @@
       <p id="list-status" class="text-xs text-slate-500 mt-1"></p>
     </div>
 
-    <!-- View mode -->
+    <!-- View mode (default: Scroll) -->
     <div class="flex items-end gap-3 my-4">
       <div>
         <label class="block text-sm text-slate-600 mb-1">View</label>
         <select id="view-mode" class="border rounded p-2">
-          <option value="spread" selected>Paginated (1–2 pages)</option>
-          <option value="scroll">Continuous scroll</option>
+          <option value="scroll" selected>Continuous scroll (viewport)</option>
+          <option value="spread">Paginated (1–2 pages)</option>
         </select>
       </div>
 
       <!-- Jump to page (only for paginated) -->
-      <div id="goto-wrap" class="flex items-end gap-2">
+      <div id="goto-wrap" class="flex items-end gap-2 hidden">
         <div>
           <label class="block text-sm text-slate-600 mb-1">Go to page</label>
           <input id="goto-input" type="number" min="1" class="border rounded p-2 w-28" />
@@ -69,23 +77,26 @@
         <div id="dl-label" class="text-xs text-slate-600 mt-1">0%</div>
       </div>
 
-      <!-- PAGINATED VIEW -->
-      <div id="pdf-render-area" class="hidden justify-center items-start gap-4 p-2 bg-white rounded-t-lg shadow">
-        <canvas id="pdf-canvas-1"></canvas>
-        <canvas id="pdf-canvas-2"></canvas>
-      </div>
-      <div id="pdf-nav" class="hidden flex gap-3 justify-between items-center p-2 border-t bg-gray-50 rounded-b-lg">
-        <div class="flex gap-2">
-          <button id="prev-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">&lt; Previous</button>
-          <button id="next-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">Next &gt;</button>
+      <!-- Fixed-height viewport -->
+      <div id="viewer-viewport" class="mt-3 p-2">
+        <!-- PAGINATED VIEW (inside viewport) -->
+        <div id="pdf-render-area" class="hidden justify-center items-start gap-4 p-2 bg-white rounded-t-lg">
+          <canvas id="pdf-canvas-1"></canvas>
+          <canvas id="pdf-canvas-2"></canvas>
         </div>
-        <span id="page-num-display" class="text-slate-700 font-medium"></span>
-      </div>
+        <div id="pdf-nav" class="hidden flex gap-3 justify-between items-center p-2 border-t bg-gray-50 rounded-b-lg">
+          <div class="flex gap-2">
+            <button id="prev-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">&lt; Previous</button>
+            <button id="next-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">Next &gt;</button>
+          </div>
+          <span id="page-num-display" class="text-slate-700 font-medium"></span>
+        </div>
 
-      <!-- SCROLL VIEW -->
-      <section id="pdf-scroll" class="hidden mt-4">
-        <div id="scroll-container" class="max-w-full flex flex-col gap-4"></div>
-      </section>
+        <!-- SCROLL VIEW (grid inside viewport) -->
+        <section id="pdf-scroll" class="mt-1">
+          <div id="scroll-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </section>
+      </div>
     </section>
   </main>
 
@@ -95,20 +106,21 @@
     /***** CONFIG *****/
     const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbwoogQ5ds_Qvqmcb_giKDyQXe6y05XIlXFfak4EjzRLTm8budQVRFGRKTsFKM8VAnWf/exec';
     const FOLDER_ID = '1fxVRg5zDlf-Zre6uy8ac48C3ILHtaPfF';
-    const VERSION = 'v6'; // cache-buster
+    const VERSION = 'v7'; // cache-buster
 
     /* ---- State & refs ---- */
     let pdfDoc = null;
     let currentPage = 1;
     let twoPageMode = true;
-    let viewMode = 'spread';      // 'spread' | 'scroll'
+    let viewMode = 'scroll';      // default: scroll
     let scrollObserver = null;    // IntersectionObserver for scroll mode
+    let pdfjsWorkerSet = false;
 
     const $ = (id) => document.getElementById(id);
+    const viewportEl = () => document.getElementById('viewer-viewport');
+
     const canvas1 = () => $('pdf-canvas-1');
     const canvas2 = () => $('pdf-canvas-2');
-    const ctx1 = () => canvas1().getContext('2d');
-    const ctx2 = () => canvas2().getContext('2d');
 
     /* ---- UI helpers ---- */
     function setStatus(msg){ const el=$('list-status'); if(el) el.textContent = msg; }
@@ -190,8 +202,7 @@
       return out;
     }
 
-    /* ---- Rendering: paginated ---- */
-    let pdfjsWorkerSet = false;
+    /* ---- Rendering: Paginated ---- */
     async function loadAndOpen(fileId){
       setLoading('Loading PDF...'); showBusy(true, 'Preparing…');
       const { pdfjsLib } = window;
@@ -212,7 +223,7 @@
 
       $('loading-message').style.display = 'none';
 
-      // Switch to current view mode
+      // Switch to the currently selected view mode
       if (viewMode === 'scroll') {
         enterScrollMode();
       } else {
@@ -224,6 +235,7 @@
     async function renderPages(startPage){
       if (!pdfDoc) return;
       startPage = Math.max(1, Math.min(startPage, pdfDoc.numPages));
+
       const renderArea = $('pdf-render-area');
       const style = window.getComputedStyle(renderArea);
       const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
@@ -246,20 +258,20 @@
       const scale = availableWidth / totalPdfWidth;
 
       const vp1 = page1.getViewport({ scale });
-      const c1 = $('pdf-canvas-1');
+      const c1 = canvas1();
       c1.width = vp1.width; c1.height = vp1.height;
       await page1.render({ canvasContext: c1.getContext('2d'), viewport: vp1 }).promise;
       c1.style.display = 'block';
 
       if (twoPageMode && page2) {
         const vp2 = page2.getViewport({ scale });
-        const c2 = $('pdf-canvas-2');
+        const c2 = canvas2();
         c2.width = vp2.width; c2.height = vp2.height;
         await page2.render({ canvasContext: c2.getContext('2d'), viewport: vp2 }).promise;
         c2.style.display = 'block';
         $('page-num-display').textContent = `Pages ${startPage}–${page2Num} of ${pdfDoc.numPages}`;
       } else {
-        $('pdf-canvas-2').style.display = 'none';
+        canvas2().style.display = 'none';
         $('page-num-display').textContent = `Page ${startPage} of ${pdfDoc.numPages}`;
       }
 
@@ -278,9 +290,9 @@
       // hide scroll view
       $('pdf-scroll').classList.add('hidden');
       if (scrollObserver){ scrollObserver.disconnect(); scrollObserver = null; }
-      $('scroll-container').innerHTML = '';
+      $('scroll-grid').innerHTML = '';
 
-      // show paginated widgets
+      // show paginated widgets inside the viewport
       $('goto-wrap').classList.remove('hidden');
       $('pdf-render-area').style.display = 'flex';
       $('pdf-nav').style.display = 'flex';
@@ -290,30 +302,31 @@
       renderPages(currentPage).then(()=>updateNavButtons()).finally(()=>showBusy(false));
     }
 
-    /* ---- Rendering: scroll (continuous) ---- */
+    /* ---- Rendering: Scroll (continuous, in fixed viewport) ---- */
     function enterScrollMode(){
       // hide paginated widgets
       $('pdf-render-area').style.display = 'none';
       $('pdf-nav').style.display = 'none';
       $('goto-wrap').classList.add('hidden');
 
-      // show scroll view
+      // show scroll grid
       $('pdf-scroll').classList.remove('hidden');
-      const cont = $('scroll-container');
-      cont.innerHTML = '';
+      const grid = $('scroll-grid');
+      grid.innerHTML = '';
 
-      // create placeholders (one canvas per page)
+      // Create placeholders (one canvas per page)
       for(let i=1;i<=pdfDoc.numPages;i++){
-        const wrap = document.createElement('div');
+        const wrap = document.createElement('div');     // grid cell
         wrap.className = 'flex justify-center';
         const canvas = document.createElement('canvas');
         canvas.dataset.page = String(i);
-        canvas.width = 10; canvas.height = 10; // placeholder
+        canvas.width = 10; canvas.height = 10;          // placeholder
         wrap.appendChild(canvas);
-        cont.appendChild(wrap);
+        grid.appendChild(wrap);
       }
 
-      // Lazy render with IntersectionObserver
+      // Lazy render with IntersectionObserver rooted to the viewport
+      const rootEl = viewportEl();
       scrollObserver = new IntersectionObserver(async (entries)=>{
         for (const entry of entries){
           if (!entry.isIntersecting) continue;
@@ -323,43 +336,56 @@
           const pageNum = parseInt(canvas.dataset.page, 10);
           const page = await pdfDoc.getPage(pageNum);
 
-          // Fit to container width (minus small padding)
-          const contWidth = cont.clientWidth - 8;
+          // Fit to the width of its grid cell
+          const cell = canvas.parentElement;
+          const cellWidth = cell.clientWidth; // already 1 or 1/2 of grid width
           const natural = page.getViewport({ scale: 1 }).width;
-          const scale = Math.max(0.1, contWidth / natural);
+          const scale = Math.max(0.1, (cellWidth - 2) / natural); // small padding
           const vp = page.getViewport({ scale });
 
           canvas.width = vp.width; canvas.height = vp.height;
           await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
           canvas.dataset.rendered = '1';
         }
-      }, { root: null, rootMargin: '200px 0px', threshold: 0.01 });
+      }, { root: rootEl, rootMargin: '200px 0px', threshold: 0.01 });
 
       // Observe all canvases
-      cont.querySelectorAll('canvas').forEach(c => scrollObserver.observe(c));
+      grid.querySelectorAll('canvas').forEach(c => scrollObserver.observe(c));
 
-      // On window resize, re-render visible pages to new width
+      // Re-render visible pages on viewport resize (e.g., when grid switches to 1↔2 cols)
       let resizeTimer = null;
-      window.addEventListener('resize', ()=>{
+      const onResize = ()=>{
         if (viewMode !== 'scroll') return;
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(async ()=>{
-          const contWidth = cont.clientWidth - 8;
-          const visible = Array.from(cont.querySelectorAll('canvas')).filter(c=>{
-            const r = c.getBoundingClientRect();
-            return r.bottom > 0 && r.top < (window.innerHeight || document.documentElement.clientHeight) + 200;
-          });
-          for (const canvas of visible){
+          const gridEl = $('scroll-grid');
+          const canvases = Array.from(gridEl.querySelectorAll('canvas'));
+          const vh = rootEl.clientHeight;
+          const vr = rootEl.getBoundingClientRect();
+
+          // only re-render canvases that are near the viewport
+          for (const canvas of canvases){
+            const r = canvas.getBoundingClientRect();
+            const visible = (r.bottom > vr.top - 200) && (r.top < vr.top + vh + 200);
+            if (!visible) continue;
+
             const pageNum = parseInt(canvas.dataset.page, 10);
             const page = await pdfDoc.getPage(pageNum);
+            const cell = canvas.parentElement;
+            const cellWidth = cell.clientWidth;
             const natural = page.getViewport({ scale: 1 }).width;
-            const scale = Math.max(0.1, contWidth / natural);
+            const scale = Math.max(0.1, (cellWidth - 2) / natural);
             const vp = page.getViewport({ scale });
             canvas.width = vp.width; canvas.height = vp.height;
             await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+            canvas.dataset.rendered = '1';
           }
         }, 150);
-      }, { passive:true });
+      };
+
+      // listen to window resize + viewport scroll
+      window.addEventListener('resize', onResize, { passive:true });
+      rootEl.addEventListener('scroll', onResize, { passive:true });
     }
 
     /* ---- Init & events ---- */
@@ -376,6 +402,7 @@
 
     async function initHSK(){
       setModeFromViewport();
+      // When viewport width changes, refresh paginated scales
       window.addEventListener('resize', async ()=>{
         setModeFromViewport();
         if (viewMode==='spread' && pdfDoc) {
@@ -399,7 +426,7 @@
         populateSelect(list);
         setStatus(`${list.length} materials found.`);
         $('pdf-select').addEventListener('change', (e)=> loadAndOpen(e.target.value));
-        await loadAndOpen(list[0].id);
+        await loadAndOpen(list[0].id);     // loads default PDF in **scroll** view
       } catch (err) {
         setStatus(`Failed: ${err.message}`);
       }
