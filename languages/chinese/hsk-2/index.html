@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="/assets/css/styles.css" />
   <script type="module" src="/assets/js/components/header.js"></script>
   <script type="module" src="/assets/js/components/footer.js"></script>
-  <!-- Tailwind for layout helpers -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     #pdf-viewer canvas {
@@ -26,7 +25,7 @@
   <main class="container prose">
     <h1>HSK 2.0 Vocabulary</h1>
 
-    <!-- Viewer controls -->
+    <!-- File picker -->
     <div class="max-w-5xl mx-auto my-6">
       <label class="block text-sm text-slate-600 mb-1">Choose material</label>
       <select id="pdf-select" class="w-full border rounded p-2"></select>
@@ -46,7 +45,7 @@
     <section id="pdf-viewer" class="mt-4">
       <p id="loading-message" class="text-slate-600">Loading…</p>
 
-      <!-- Spinner + label -->
+      <!-- Spinner -->
       <div id="busy" class="hidden mt-3 flex items-center gap-2 text-slate-600">
         <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" class="opacity-25"></circle>
@@ -55,12 +54,12 @@
         <span id="busy-label">Preparing…</span>
       </div>
 
-      <!-- Progress bar -->
+      <!-- Progress -->
       <div id="dl-progress" class="hidden mt-3">
         <div class="w-full bg-gray-200 rounded">
           <div id="dl-bar" class="h-2 rounded bg-indigo-600" style="width:0%"></div>
         </div>
-        <div id="dl-label" class="text-xs text-slate-600 mt-1">0%</div>
+        <div id="dl-label" class="text-xs text-slate-600 mt-1">0%</</div>
       </div>
 
       <div id="pdf-render-area" class="hidden justify-center items-start gap-4 p-2 bg-white rounded-t-lg shadow">
@@ -79,29 +78,26 @@
 
   <site-footer></site-footer>
 
-  <!-- PDF.js -->
   <script>
     /***** CONFIG *****/
-    const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbyNrsxztUHt0T5NY6eaQkM6F9p5KKPrAZDIFUFq03mSUxqWK6LFY6xaATvP_25EpFT_6Q/exec';
+    const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbwoogQ5ds_Qvqmcb_giKDyQXe6y05XIlXFfak4EjzRLTm8budQVRFGRKTsFKM8VAnWf/exec';
     const FOLDER_ID = '1fxVRg5zDlf-Zre6uy8ac48C3ILHtaPfF';
-    const VERSION = 'v2'; // bump to bust caches after updates
-
-    // ~50MB Apps Script response ceiling; keep a buffer for headers/base64 overhead (~+33%)
-    const MAX_SAFE_BASE64 = 47 * 1024 * 1024;
+    const VERSION = 'v3'; // cache-buster for list/chunk requests
 
     /* ---- State & refs ---- */
     let pdfDoc = null;
     let currentPage = 1;
     let twoPageMode = true;            // desktop=2 pages, mobile=1
-    const cache = new Map();           // fileId -> base64 string
-    const fileSizes = new Map();       // fileId -> sizeBytes
-
     const $ = (id) => document.getElementById(id);
+
     const canvas1 = () => $('pdf-canvas-1');
     const canvas2 = () => $('pdf-canvas-2');
     const ctx1 = () => canvas1().getContext('2d');
     const ctx2 = () => canvas2().getContext('2d');
 
+    const fileSizes = new Map();       // fileId -> sizeBytes
+
+    /* ---- UI helpers ---- */
     function setStatus(msg){ const el=$('list-status'); if(el) el.textContent = msg; }
     function setLoading(msg){ const el=$('loading-message'); if(el) el.textContent = msg; }
 
@@ -119,124 +115,90 @@
       if(bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
       if(lbl) lbl.textContent = text ?? (Math.round(pct) + '%');
     }
-    function estimateBase64Length(byteLen){ return 4 * Math.ceil(byteLen / 3); }
-
     function setModeFromViewport(){
       twoPageMode = !window.matchMedia('(max-width: 768px)').matches;
       canvas2().style.display = twoPageMode ? 'block' : 'none';
     }
 
-    /* ---- Base64 decoder (hardened) ---- */
-    function safeDecodeBase64ToBytes(b64){
-      const head = (b64 || '').slice(0, 200);
-
-      if (!b64) throw new Error('Empty response from server.');
-
-      if (head.startsWith('ERROR:')) {
-        throw new Error(head); // Plain-text error returned by Apps Script
-      }
-      if (head.startsWith('<')) {
-        throw new Error('Server returned HTML (Apps Script error). First bytes: ' + head);
-      }
-      if (head.startsWith('{')) {
-        throw new Error('Server returned JSON (error object). First bytes: ' + head);
-      }
-
-      // Strip whitespace/newlines and pad
-      b64 = b64.replace(/[\r\n\s]+/g, '');
-      while (b64.length % 4 !== 0) b64 += '=';
-
-      if (!/^[A-Za-z0-9+/=]+$/.test(b64)) {
-        throw new Error('Invalid base64 characters. First bytes: ' + head);
-      }
-
-      let binary = '';
-      try { binary = atob(b64); }
-      catch (e) { throw new Error('atob failed: ' + e.message + '. First bytes: ' + head); }
-
-      const len = binary.length;
-      const out = new Uint8Array(len);
-      for (let i = 0; i < len; i++) out[i] = binary.charCodeAt(i);
-      return out;
-    }
-
-    /* ---- Networking ---- */
+    /* ---- Networking: list ---- */
     async function fetchList(){
       const url = `${APPS_SCRIPT_BASE}?mode=list&folderId=${encodeURIComponent(FOLDER_ID)}&v=${VERSION}`;
-      let res, text;
-      try {
-        res = await fetch(url, { cache: 'no-store' });
-        text = await res.text();
-      } catch (e) {
-        setStatus(`Network error: ${e.message}`);
-        throw e;
-      }
-      if (!res.ok) {
-        setStatus(`HTTP ${res.status}: ${text.slice(0,200)}`);
-        throw new Error(`HTTP ${res.status}`);
-      }
+      const res = await fetch(url, { cache: 'no-store' });
+      const text = await res.text();
+      if (!res.ok) { setStatus(`HTTP ${res.status}: ${text.slice(0,200)}`); throw new Error(`HTTP ${res.status}`); }
       const data = JSON.parse(text);
-      if (data?.error) {
-        setStatus(`Script error: ${data.error}`);
-        throw new Error(data.error);
-      }
+      if (data?.error) { setStatus(`Script error: ${data.error}`); throw new Error(data.error); }
       return data; // [{id,name,display,modifiedTime,sizeBytes}, ...]
     }
 
-    async function getPdfBase64(fileId){
-      if (cache.has(fileId)) return cache.get(fileId);
+    /* ---- Chunked download helpers ---- */
 
-      // Guard: avoid oversized base64 payloads
-      const expectedBinary = fileSizes.get(fileId) || 0;
-      const expectedBase64 = expectedBinary ? estimateBase64Length(expectedBinary) : 0;
-      if (expectedBase64 > MAX_SAFE_BASE64) {
-        const mb = (expectedBinary / (1024*1024)).toFixed(1);
-        throw new Error(`This PDF is too large for Apps Script base64 (${mb} MB). Please compress/split.`);
-      }
+    // Strict base64->bytes for each chunk
+    function b64ToBytes(b64) {
+      b64 = (b64 || '').replace(/[\r\n\s]+/g, '');
+      while (b64.length % 4 !== 0) b64 += '=';
+      const bin = atob(b64);
+      const out = new Uint8Array(bin.length);
+      for (let i=0; i<bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
 
-      const url = `${APPS_SCRIPT_BASE}?mode=get&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
+    // Query file info (size/version)
+    async function getInfo(fileId) {
+      const url = `${APPS_SCRIPT_BASE}?mode=getInfo&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
       const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`PDF fetch failed (HTTP ${res.status})`);
+      const text = await res.text();
+      if (!res.ok) throw new Error(`Info HTTP ${res.status}: ${text.slice(0,200)}`);
+      const data = JSON.parse(text);
+      if (data?.error) throw new Error(data.error);
+      return data; // {sizeBytes, version}
+    }
 
-      // PREPARING (server reading & encoding) – no client progress possible yet
-      showBusy(true, 'Preparing…');
-      showProgress(false);
+    // Download in base64 chunks and stitch into a single Uint8Array
+    async function getPdfBytesChunked(fileId, chunkSize = 1024 * 1024) { // 1 MB chunks
+      const info = await getInfo(fileId);
+      const total = Number(info.sizeBytes || 0);
+      if (!total) throw new Error('Server did not report file size.');
 
-      // When bytes start arriving, switch UI to “Downloading…”
-      const reader = res.body.getReader();
+      showBusy(false);
+      showProgress(true);
+      setProgress(1, 'Downloading… 1%');
+
+      let offset = 0;
       const chunks = [];
-      let received = 0, started = false;
+      while (offset < total) {
+        const url = `${APPS_SCRIPT_BASE}?mode=getChunk&fileId=${encodeURIComponent(fileId)}&offset=${offset}&length=${chunkSize}&v=${VERSION}`;
+        const res = await fetch(url, { cache: 'no-store' });
+        const txt = await res.text();
+        if (!res.ok) throw new Error(`Chunk HTTP ${res.status}: ${txt.slice(0,200)}`);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        let payload;
+        try { payload = JSON.parse(txt); }
+        catch { throw new Error('Bad JSON from chunk endpoint: ' + txt.slice(0,200)); }
 
-        if (!started) {
-          started = true;
-          showBusy(false);
-          showProgress(true);
-          setProgress(1, 'Downloading… 1%');
+        if (payload.error) throw new Error(payload.error);
+        if (!payload.ok || typeof payload.offset !== 'number' || !payload.chunkB64) {
+          throw new Error('Malformed chunk response: ' + txt.slice(0,200));
         }
 
-        chunks.push(value);
-        received += value.length;
+        const bytes = b64ToBytes(payload.chunkB64);
+        chunks.push(bytes);
 
-        if (expectedBase64 > 0) {
-          const pct = Math.min(99, Math.floor((received / expectedBase64) * 100));
-          setProgress(pct, `Downloading… ${pct}%`);
-        } else {
-          setProgress(0, `Downloading… ${Math.round(received / 1024)} KB`);
-        }
+        offset = payload.end;
+        const pct = Math.min(99, Math.floor((offset / total) * 100));
+        setProgress(pct, `Downloading… ${pct}%`);
       }
-
-      const blob = new Blob(chunks);
-      const b64 = await blob.text();
 
       showProgress(false);
       showBusy(true, 'Processing…');
 
-      cache.set(fileId, b64);
-      return b64;
+      // Concatenate
+      let totalLen = 0;
+      for (const c of chunks) totalLen += c.length;
+      const out = new Uint8Array(totalLen);
+      let pos = 0;
+      for (const c of chunks) { out.set(c, pos); pos += c.length; }
+      return out;
     }
 
     /* ---- Rendering ---- */
@@ -244,27 +206,19 @@
       setLoading('Loading PDF...');
       showBusy(true, 'Preparing…');
 
+      // Load PDF.js worker
       const { pdfjsLib } = window;
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-      let b64;
-      try {
-        b64 = await getPdfBase64(fileId);
-      } catch (e) {
-        showBusy(false); showProgress(false);
-        setStatus('Fetch error: ' + e.message);
-        console.error('Fetch error:', e);
-        return;
-      }
-
       let data;
       try {
-        data = safeDecodeBase64ToBytes(b64);
+        // Chunked download to bytes
+        data = await getPdfBytesChunked(fileId);
       } catch (e) {
         showBusy(false); showProgress(false);
-        setStatus('Decode error: ' + e.message);
-        console.error('Decode failure. Length:', (b64||'').length, 'Head:', (b64||'').slice(0,200));
+        setStatus('Download error: ' + e.message);
+        console.error(e);
         return;
       }
 
@@ -286,7 +240,6 @@
       showBusy(true, 'Rendering…');
       await renderPages(currentPage);
       updateNavButtons();
-
       showBusy(false);
     }
 
@@ -350,7 +303,6 @@
 
       // Natural-ish sort
       items.sort((a,b)=> a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
-
       items.forEach(it=>{
         fileSizes.set(it.id, Number(it.sizeBytes || 0));
         const opt = document.createElement('option');
