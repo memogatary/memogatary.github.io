@@ -59,9 +59,67 @@ class SiteHeader extends HTMLElement {
 }
 customElements.define('site-header', SiteHeader);
 
-// === Back-to-parent pill (centered; dark-mode via explicit theme only; skips 404 parents) ===
+// ========== THEME DETECTOR (adds/removes html.mg-dark) ==========
+(function () {
+  function isDarkFromSite() {
+    const roots = [document.documentElement, document.body];
+    const clsTokens = ["dark", "theme-dark", "dark-mode"];
+    const attrKeys = ["data-theme", "data-mode", "theme", "color-scheme"];
+
+    for (const el of roots) {
+      if (!el) continue;
+      const cls = (el.className || "").toLowerCase();
+      if (clsTokens.some(t => new RegExp(`(?:^|\\s)${t}(?:\\s|$)`).test(cls))) return true;
+      for (const k of attrKeys) {
+        const v = (el.getAttribute(k) || "").toLowerCase();
+        if (v.includes("dark")) return true;
+      }
+    }
+    return false;
+  }
+
+  function hasExplicitTheme() {
+    const roots = [document.documentElement, document.body];
+    const clsTokens = ["dark", "theme-dark", "dark-mode", "light", "theme-light", "light-mode"];
+    const attrKeys = ["data-theme", "data-mode", "theme", "color-scheme"];
+    for (const el of roots) {
+      if (!el) continue;
+      const cls = (el.className || "").toLowerCase();
+      if (clsTokens.some(t => cls.includes(t))) return true;
+      for (const k of attrKeys) {
+        const v = (el.getAttribute(k) || "").toLowerCase();
+        if (v === "dark" || v === "light") return true;
+      }
+    }
+    return false;
+  }
+
+  function applyDark(flag) {
+    document.documentElement.classList.toggle("mg-dark", !!flag);
+  }
+
+  // Initial apply
+  applyDark(isDarkFromSite() || (!hasExplicitTheme() && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches));
+
+  // Observe changes to classes/attributes so the pills flip instantly
+  const obs = new MutationObserver(() => applyDark(isDarkFromSite()));
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme", "data-mode", "theme", "color-scheme"] });
+  if (document.body) {
+    obs.observe(document.body, { attributes: true, attributeFilter: ["class", "data-theme", "data-mode", "theme", "color-scheme"] });
+  }
+
+  // If your site relies only on OS preference and not explicit classes, update on OS changes
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", e => {
+      if (!hasExplicitTheme()) applyDark(e.matches);
+    });
+  }
+})();
+
+
+// ========== BACK-TO-PARENT PILL (centered; skips 404 parents) ==========
 document.addEventListener("DOMContentLoaded", () => {
-  // Inject CSS once (no @media fallback; Light/Dark driven only by your theme class/attr)
+  // CSS (light/dark via html.mg-dark)
   if (!document.getElementById("mg-back-pill-style")) {
     const style = document.createElement("style");
     style.id = "mg-back-pill-style";
@@ -76,18 +134,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       a.mg-back-pill:hover { background:#e2e8f0; }
       a.mg-back-pill:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
-
-      /* Dark mode ONLY when your site explicitly sets it */
-      html.dark a.mg-back-pill,
-      body.dark a.mg-back-pill,
-      [data-theme="dark"] a.mg-back-pill {
-        background:#1f2937; color:#e5e7eb !important;
-      }
-      html.dark a.mg-back-pill:hover,
-      body.dark a.mg-back-pill:hover,
-      [data-theme="dark"] a.mg-back-pill:hover {
-        background:#374151;
-      }
+      html.mg-dark a.mg-back-pill { background:#1f2937; color:#e5e7eb !important; }
+      html.mg-dark a.mg-back-pill:hover { background:#374151; }
     `;
     document.head.appendChild(style);
   }
@@ -165,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-// === Pillify external media links (dark-mode via explicit theme only; prose-friendly) ===
+// ========== PILLIFY MEDIA LINKS (dark-mode via html.mg-dark; prose-friendly) ==========
 document.addEventListener("DOMContentLoaded", () => {
   if (!document.getElementById("mg-pills-style")) {
     const style = document.createElement("style");
@@ -180,20 +228,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       a.mg-pill:hover { background:#e2e8f0; }
       a.mg-pill:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
+      html.mg-dark a.mg-pill { background:#1f2937; color:#e5e7eb !important; }
+      html.mg-dark a.mg-pill:hover { background:#374151; }
 
-      /* Dark mode ONLY when your site explicitly sets it */
-      html.dark a.mg-pill,
-      body.dark a.mg-pill,
-      [data-theme="dark"] a.mg-pill {
-        background:#1f2937; color:#e5e7eb !important;
-      }
-      html.dark a.mg-pill:hover,
-      body.dark a.mg-pill:hover,
-      [data-theme="dark"] a.mg-pill:hover {
-        background:#374151;
-      }
-
-      /* List layout + remove bullets even under .prose */
       .mg-pill-list {
         list-style:none; margin:.5rem 0 0 0; padding:0;
         display:flex; flex-wrap:wrap; gap:.5rem;
