@@ -20,24 +20,25 @@
             background: #fff;
         }
 
-        /* Two-page spread row (never wrap) */
-        #pdf-render-area canvas {
-            flex: 0 0 auto;
-            display: none;
-            /* ← hide default 300×150 boxes */
-            max-width: none;
-            height: auto;
-            border: 1px solid #ddd;
-            image-rendering: crisp-edges;
-            image-rendering: -webkit-optimize-contrast;
+        /* Always a single row; never wrap to a second row */
+        #pdf-render-area {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: flex-start;
+            gap: 1rem;
         }
 
-        /* Canvases are fixed-size flex items; render sharply */
+        /* Canvases: hidden until rendered, then inline-block so they sit side-by-side */
         #pdf-render-area canvas {
+            display: none;
+            /* hidden during load */
             flex: 0 0 auto;
-            display: block;
-            max-width: none;
-            height: auto;
+            vertical-align: top;
+            width: auto !important;
+            /* don't stretch to 100% */
+            max-width: none !important;
+            height: auto !important;
             border: 1px solid #ddd;
             image-rendering: crisp-edges;
             image-rendering: -webkit-optimize-contrast;
@@ -314,13 +315,13 @@
             const vp1 = page1.getViewport({ scale });
             const c1 = canvas1();
             await renderPageToCanvas(page1, c1, vp1);
-            c1.style.display = 'block';
+            c1.style.display = 'inline-block';   // <-- was 'block'
 
             if (twoPageMode && page2) {
                 const vp2 = page2.getViewport({ scale });
                 const c2 = canvas2();
                 await renderPageToCanvas(page2, c2, vp2);
-                c2.style.display = 'block';
+                c2.style.display = 'inline-block'; // <-- was 'block'
                 $('page-num-display').textContent = `Pages ${startPage}–${page2Num} of ${pdfDoc.numPages}`;
             } else {
                 canvas2().style.display = 'none';
