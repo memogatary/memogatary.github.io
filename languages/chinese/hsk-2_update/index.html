@@ -21,15 +21,15 @@
         }
 
         /* Two-page spread row (never wrap) */
-        #pdf-render-area {
-            display: flex;
-            flex-wrap: nowrap;
-            align-items: flex-start;
-            gap: 1rem;
-            padding: .5rem;
-            background: #fff;
-            border-top-left-radius: .5rem;
-            border-top-right-radius: .5rem;
+        #pdf-render-area canvas {
+            flex: 0 0 auto;
+            display: none;
+            /* ← hide default 300×150 boxes */
+            max-width: none;
+            height: auto;
+            border: 1px solid #ddd;
+            image-rendering: crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
         }
 
         /* Canvases are fixed-size flex items; render sharply */
