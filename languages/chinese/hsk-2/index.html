@@ -11,53 +11,27 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Fixed-height viewer window with its own scrollbar */
-    #viewer-viewport {
-      height: 78vh;              /* tweak to taste (e.g., 70–85vh) */
-      overflow: auto;
-      border: 1px solid #e5e7eb; /* gray-200 */
-      border-radius: 0.5rem;
-      background: #fff;
+    #viewer-viewport{
+      height:78vh;overflow:auto;border:1px solid #e5e7eb;border-radius:.5rem;background:#fff;
     }
-
-    /* Make the two canvases sit side-by-side in a single row */
-    #pdf-render-area {
-      display: flex;             /* enforce row layout */
-      flex-wrap: nowrap;         /* never wrap into a second row */
-      align-items: flex-start;
-      gap: 1rem;                 /* space between pages */
-      padding: .5rem;            /* padding already in Tailwind; keep here as fallback */
-      background: #fff;
-      border-top-left-radius: .5rem;
-      border-top-right-radius: .5rem;
+    /* Two-page spread row (never wrap) */
+    #pdf-render-area{
+      display:flex;flex-wrap:nowrap;align-items:flex-start;gap:1rem;padding:.5rem;background:#fff;
+      border-top-left-radius:.5rem;border-top-right-radius:.5rem;
     }
-
-    /* Ensure canvases behave as flex items and don't get 100%-width from global styles */
-    #pdf-render-area canvas {
-      flex: 0 0 auto;            /* fixed-size flex items */
-      display: block;
-      max-width: none;           /* use the width we set in JS (viewport width) */
-      height: auto;
-      border: 1px solid #ddd;
+    /* Canvases are fixed-size flex items; render sharply */
+    #pdf-render-area canvas{
+      flex:0 0 auto;display:block;max-width:none;height:auto;border:1px solid #ddd;
+      image-rendering:crisp-edges;image-rendering:-webkit-optimize-contrast;
     }
-
-    /* Footer nav bar */
-    #pdf-nav {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: .5rem;
-      border-top: 1px solid #e5e7eb;
-      background: #f9fafb;
-      border-bottom-left-radius: .5rem;
-      border-bottom-right-radius: .5rem;
+    /* Neutralize prose margins on canvas */
+    .prose #pdf-render-area canvas{ margin:0!important; }
+    /* Footer nav */
+    #pdf-nav{
+      display:flex;justify-content:space-between;align-items:center;padding:.5rem;border-top:1px solid #e5e7eb;
+      background:#f9fafb;border-bottom-left-radius:.5rem;border-bottom-right-radius:.5rem;
     }
-
-    /* If Tailwind Typography `.prose` adds margins to canvas, neutralize them in the viewer */
-    .prose #pdf-render-area canvas {
-      margin: 0 !important;
-    }
-
-    #pdf-nav button:disabled { opacity:.5; cursor:not-allowed; }
+    #pdf-nav button:disabled{opacity:.5;cursor:not-allowed;}
   </style>
 </head>
 
@@ -69,7 +43,7 @@
 
     <!-- Centered YouTube note -->
     <p class="text-center text-slate-700">
-      Videos of the material can be found at the
+      Videos of the materials can be found at the
       <a class="text-indigo-600 underline" href="https://www.youtube.com/@LuyenTiengTrung" target="_blank" rel="noopener">YouTube Channel</a>.
     </p>
 
@@ -89,7 +63,7 @@
       <button id="goto-btn" class="h-10 px-4 rounded bg-indigo-600 text-white">Go</button>
     </div>
 
-    <!-- Shared loading/status UI -->
+    <!-- Viewer -->
     <section id="pdf-viewer" class="mt-2">
       <p id="loading-message" class="text-slate-600">Loading…</p>
 
@@ -104,20 +78,15 @@
 
       <!-- Progress -->
       <div id="dl-progress" class="hidden mt-3">
-        <div class="w-full bg-gray-200 rounded">
-          <div id="dl-bar" class="h-2 rounded bg-indigo-600" style="width:0%"></div>
-        </div>
+        <div class="w-full bg-gray-200 rounded"><div id="dl-bar" class="h-2 rounded bg-indigo-600" style="width:0%"></div></div>
         <div id="dl-label" class="text-xs text-slate-600 mt-1">0%</div>
       </div>
 
-      <!-- Fixed-height viewport -->
       <div id="viewer-viewport" class="mt-3 p-2">
-        <!-- Two-page spread lives here -->
-        <div id="pdf-render-area" class="bg-white rounded-t-lg">
+        <div id="pdf-render-area" class="rounded-t-lg">
           <canvas id="pdf-canvas-1"></canvas>
           <canvas id="pdf-canvas-2"></canvas>
         </div>
-
         <div id="pdf-nav" class="rounded-b-lg">
           <div class="flex gap-2">
             <button id="prev-page" class="bg-gray-300 text-gray-900 font-semibold py-2 px-4 rounded">&lt; Previous</button>
@@ -135,12 +104,12 @@
     /***** CONFIG *****/
     const APPS_SCRIPT_BASE = 'https://script.google.com/macros/s/AKfycbwoogQ5ds_Qvqmcb_giKDyQXe6y05XIlXFfak4EjzRLTm8budQVRFGRKTsFKM8VAnWf/exec';
     const FOLDER_ID = '1fxVRg5zDlf-Zre6uy8ac48C3ILHtaPfF';
-    const VERSION = 'v7'; // cache-buster
+    const VERSION = 'v7';
 
     /* ---- State & refs ---- */
     let pdfDoc = null;
     let currentPage = 1;
-    let twoPageMode = true;      // auto (1 or 2 pages based on width)
+    let twoPageMode = true;   // auto (1 or 2 pages based on width)
     let pdfjsWorkerSet = false;
 
     const $ = (id) => document.getElementById(id);
@@ -156,9 +125,7 @@
       if(typeof label === 'string' && txt) txt.textContent = label;
       box.classList.toggle('hidden', !show);
     }
-    function showProgress(show){
-      const box = $('dl-progress'); if(box) box.classList.toggle('hidden', !show);
-    }
+    function showProgress(show){ const box = $('dl-progress'); if(box) box.classList.toggle('hidden', !show); }
     function setProgress(pct, text){
       const bar = $('dl-bar'), lbl = $('dl-label');
       if(bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
@@ -169,97 +136,104 @@
       canvas2().style.display = twoPageMode ? 'block' : 'none';
     }
 
-    /* ---- Networking: list & chunks ---- */
+    /* ---- Networking ---- */
     async function fetchList(){
       const url = `${APPS_SCRIPT_BASE}?mode=list&folderId=${encodeURIComponent(FOLDER_ID)}&v=${VERSION}`;
-      const res = await fetch(url, { cache: 'no-store' });
+      const res = await fetch(url, { cache:'no-store' });
       const text = await res.text();
-      if (!res.ok) { setStatus(`HTTP ${res.status}: ${text.slice(0,200)}`); throw new Error(`HTTP ${res.status}`); }
+      if(!res.ok){ setStatus(`HTTP ${res.status}: ${text.slice(0,200)}`); throw new Error(`HTTP ${res.status}`); }
       const data = JSON.parse(text);
-      if (data?.error) { setStatus(`Script error: ${data.error}`); throw new Error(data.error); }
+      if(data?.error){ setStatus(`Script error: ${data.error}`); throw new Error(data.error); }
       return data;
     }
-    function b64ToBytes(b64) {
-      b64 = (b64 || '').replace(/[\r\n\s]+/g, '');
-      while (b64.length % 4 !== 0) b64 += '=';
-      const bin = atob(b64);
-      const out = new Uint8Array(bin.length);
-      for (let i=0; i<bin.length; i++) out[i] = bin.charCodeAt(i);
+    function b64ToBytes(b64){
+      b64=(b64||'').replace(/[\r\n\s]+/g,''); while(b64.length%4!==0) b64+='=';
+      const bin=atob(b64); const out=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i);
       return out;
     }
-    async function getInfo(fileId) {
-      const url = `${APPS_SCRIPT_BASE}?mode=getInfo&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
-      const res = await fetch(url, { cache: 'no-store' });
-      const text = await res.text();
-      if (!res.ok) throw new Error(`Info HTTP ${res.status}: ${text.slice(0,200)}`);
-      const data = JSON.parse(text);
-      if (data?.error) throw new Error(data.error);
-      return data;
+    async function getInfo(fileId){
+      const url=`${APPS_SCRIPT_BASE}?mode=getInfo&fileId=${encodeURIComponent(fileId)}&v=${VERSION}`;
+      const res=await fetch(url,{cache:'no-store'}); const text=await res.text();
+      if(!res.ok) throw new Error(`Info HTTP ${res.status}: ${text.slice(0,200)}`);
+      const data=JSON.parse(text); if(data?.error) throw new Error(data.error); return data;
     }
-    async function getPdfBytesChunked(fileId, chunkSize = 1024 * 1024) {
-      const info = await getInfo(fileId);
-      const total = Number(info.sizeBytes || 0);
-      if (!total) throw new Error('Server did not report file size.');
-      showBusy(false); showProgress(true); setProgress(1, 'Downloading… 1%');
-
-      let offset = 0, chunks = [];
-      while (offset < total) {
-        const url = `${APPS_SCRIPT_BASE}?mode=getChunk&fileId=${encodeURIComponent(fileId)}&offset=${offset}&length=${chunkSize}&v=${VERSION}`;
-        const res = await fetch(url, { cache: 'no-store' });
-        const txt = await res.text();
-        if (!res.ok) throw new Error(`Chunk HTTP ${res.status}: ${txt.slice(0,200)}`);
-        const payload = JSON.parse(txt);
-        if (payload.error || !payload.ok || !payload.chunkB64) throw new Error(payload.error || 'Malformed chunk');
+    async function getPdfBytesChunked(fileId, chunkSize=1024*1024){
+      const info=await getInfo(fileId); const total=Number(info.sizeBytes||0);
+      if(!total) throw new Error('Server did not report file size.');
+      showBusy(false); showProgress(true); setProgress(1,'Downloading… 1%');
+      let offset=0, chunks=[];
+      while(offset<total){
+        const url=`${APPS_SCRIPT_BASE}?mode=getChunk&fileId=${encodeURIComponent(fileId)}&offset=${offset}&length=${chunkSize}&v=${VERSION}`;
+        const res=await fetch(url,{cache:'no-store'}); const txt=await res.text();
+        if(!res.ok) throw new Error(`Chunk HTTP ${res.status}: ${txt.slice(0,200)}`);
+        const payload=JSON.parse(txt);
+        if(payload.error||!payload.ok||!payload.chunkB64) throw new Error(payload.error||'Malformed chunk');
         chunks.push(b64ToBytes(payload.chunkB64));
-        offset = payload.end;
-        const pct = Math.min(99, Math.floor((offset / total) * 100));
-        setProgress(pct, `Downloading… ${pct}%`);
+        offset=payload.end;
+        const pct=Math.min(99,Math.floor((offset/total)*100));
+        setProgress(pct,`Downloading… ${pct}%`);
       }
-      showProgress(false); showBusy(true, 'Processing…');
-
-      let totalLen = 0; for (const c of chunks) totalLen += c.length;
-      const out = new Uint8Array(totalLen);
-      let pos = 0; for (const c of chunks) { out.set(c, pos); pos += c.length; }
-      // quick %PDF check
-      const sig = [0x25,0x50,0x44,0x46]; let ok=false;
-      for (let i=0;i<Math.min(64,out.length-3);i++){ if(out[i]===sig[0]&&out[i+1]===sig[1]&&out[i+2]===sig[2]&&out[i+3]===sig[3]){ok=true;break;} }
+      showProgress(false); showBusy(true,'Processing…');
+      let totalLen=0; for(const c of chunks) totalLen+=c.length;
+      const out=new Uint8Array(totalLen); let pos=0;
+      for(const c of chunks){ out.set(c,pos); pos+=c.length; }
+      const sig=[0x25,0x50,0x44,0x46]; let ok=false;
+      for(let i=0;i<Math.min(64,out.length-3);i++){ if(out[i]===sig[0]&&out[i+1]===sig[1]&&out[i+2]===sig[2]&&out[i+3]===sig[3]){ok=true;break;} }
       if(!ok) throw new Error('Downloaded bytes do not look like a PDF.');
       return out;
     }
 
-    /* ---- Rendering (Two-page spread or single page based on width) ---- */
+    /* ---- High-DPI canvas rendering ---- */
+    async function renderPageToCanvas(page, canvas, viewport){
+      const dpr = Math.min(window.devicePixelRatio || 1, 2); // cap at 2 for perf on phones
+      const ctx = canvas.getContext('2d', { alpha:false });
+
+      // Backing store size in physical pixels
+      canvas.width  = Math.floor(viewport.width  * dpr);
+      canvas.height = Math.floor(viewport.height * dpr);
+
+      // CSS size in layout pixels
+      canvas.style.width  = Math.floor(viewport.width)  + 'px';
+      canvas.style.height = Math.floor(viewport.height) + 'px';
+
+      await page.render({
+        canvasContext: ctx,
+        viewport,
+        transform: [dpr, 0, 0, dpr, 0, 0]
+      }).promise;
+    }
+
+    /* ---- Rendering (two-page spread or single) ---- */
     async function loadAndOpen(fileId){
-      setLoading('Loading PDF...'); showBusy(true, 'Preparing…');
+      setLoading('Loading PDF...'); showBusy(true,'Preparing…');
       const { pdfjsLib } = window;
-      if (!pdfjsLib) { setStatus('PDF.js not loaded.'); showBusy(false); return; }
-      if (!pdfjsWorkerSet){
+      if(!pdfjsLib){ setStatus('PDF.js not loaded.'); showBusy(false); return; }
+      if(!pdfjsWorkerSet){
         pdfjsLib.GlobalWorkerOptions.workerSrc =
           'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-        // Quiet down TrueType warnings
-        try { pdfjsLib.setVerbosity?.(pdfjsLib.VerbosityLevel.ERROR); } catch {}
+        try{ pdfjsLib.setVerbosity?.(pdfjsLib.VerbosityLevel.ERROR); }catch{}
         pdfjsWorkerSet = true;
       }
 
       let data;
-      try { data = await getPdfBytesChunked(fileId); }
-      catch (e) { showBusy(false); showProgress(false); setStatus('Download error: ' + e.message); return; }
+      try{ data = await getPdfBytesChunked(fileId); }
+      catch(e){ showBusy(false); showProgress(false); setStatus('Download error: '+e.message); return; }
 
-      showBusy(true, 'Processing…');
-      try { pdfDoc = await pdfjsLib.getDocument({ data }).promise; }
-      catch (e) { showBusy(false); setStatus('PDF parse error: ' + e.message); return; }
+      showBusy(true,'Processing…');
+      try{ pdfDoc = await pdfjsLib.getDocument({ data }).promise; }
+      catch(e){ showBusy(false); setStatus('PDF parse error: '+e.message); return; }
 
       $('loading-message').style.display = 'none';
-
-      // initial render
       currentPage = 1;
-      showBusy(true, 'Rendering…');
+      showBusy(true,'Rendering…');
       await renderPages(currentPage);
       updateNavButtons();
       showBusy(false);
     }
 
     async function renderPages(startPage){
-      if (!pdfDoc) return;
+      if(!pdfDoc) return;
       setModeFromViewport();
 
       startPage = Math.max(1, Math.min(startPage, pdfDoc.numPages));
@@ -271,15 +245,15 @@
       let availableWidth = renderArea.clientWidth - paddingX;
 
       const page1 = await pdfDoc.getPage(startPage);
-      let totalPdfWidth = page1.getViewport({ scale: 1 }).width;
+      let totalPdfWidth = page1.getViewport({ scale:1 }).width;
 
       let page2 = null, page2Num = null;
-      if (twoPageMode) {
+      if(twoPageMode){
         page2Num = startPage + 1;
-        if (page2Num <= pdfDoc.numPages) {
+        if(page2Num <= pdfDoc.numPages){
           availableWidth -= gap;
           page2 = await pdfDoc.getPage(page2Num);
-          totalPdfWidth += page2.getViewport({ scale: 1 }).width;
+          totalPdfWidth += page2.getViewport({ scale:1 }).width;
         }
       }
 
@@ -287,18 +261,16 @@
 
       const vp1 = page1.getViewport({ scale });
       const c1 = canvas1();
-      c1.width = vp1.width; c1.height = vp1.height;
-      await page1.render({ canvasContext: c1.getContext('2d'), viewport: vp1 }).promise;
+      await renderPageToCanvas(page1, c1, vp1);
       c1.style.display = 'block';
 
-      if (twoPageMode && page2) {
+      if(twoPageMode && page2){
         const vp2 = page2.getViewport({ scale });
         const c2 = canvas2();
-        c2.width = vp2.width; c2.height = vp2.height;
-        await page2.render({ canvasContext: c2.getContext('2d'), viewport: vp2 }).promise;
+        await renderPageToCanvas(page2, c2, vp2);
         c2.style.display = 'block';
         $('page-num-display').textContent = `Pages ${startPage}–${page2Num} of ${pdfDoc.numPages}`;
-      } else {
+      }else{
         canvas2().style.display = 'none';
         $('page-num-display').textContent = `Page ${startPage} of ${pdfDoc.numPages}`;
       }
@@ -320,9 +292,8 @@
       const sel = $('pdf-select'); sel.innerHTML = '';
       items.sort((a,b)=> a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
       items.forEach(it=>{
-        const opt = document.createElement('option');
-        opt.value = it.id;
-        opt.textContent = it.display || it.name.replace(/\.pdf$/i,'');
+        const opt=document.createElement('option');
+        opt.value=it.id; opt.textContent=it.display||it.name.replace(/\.pdf$/i,'');
         sel.appendChild(opt);
       });
     }
@@ -334,58 +305,55 @@
       window.addEventListener('resize', async ()=>{
         const oldTwo = twoPageMode;
         setModeFromViewport();
-        if (!pdfDoc) return;
-        if (twoPageMode && currentPage % 2 === 0) currentPage -= 1; // start on left page in spread
-        if (oldTwo !== twoPageMode) {
-          await renderPages(currentPage);
-          updateNavButtons();
-        } else {
-          await renderPages(currentPage);
-          updateNavButtons();
+        if(!pdfDoc) return;
+        if(twoPageMode && currentPage % 2 === 0) currentPage -= 1; // left page on spread
+        if(oldTwo !== twoPageMode){
+          await renderPages(currentPage); updateNavButtons();
+        }else{
+          await renderPages(currentPage); updateNavButtons();
         }
       });
 
       setStatus('Loading materials...');
-      try {
+      try{
         const list = await fetchList();
-        if (!list.length) { setStatus('No PDFs found.'); return; }
+        if(!list.length){ setStatus('No PDFs found.'); return; }
         populateSelect(list);
         setStatus(`${list.length} materials found.`);
         $('pdf-select').addEventListener('change', (e)=> loadAndOpen(e.target.value));
-        await loadAndOpen(list[0].id); // load default
-      } catch (err) {
+        await loadAndOpen(list[0].id);
+      }catch(err){
         setStatus(`Failed: ${err.message}`);
       }
 
-      // Paginated navigation
       $('prev-page').addEventListener('click', async ()=>{
-        if (!pdfDoc) return;
+        if(!pdfDoc) return;
         const delta = twoPageMode ? 2 : 1;
         const target = currentPage - delta;
-        if (target >= 1) { await renderPages(target); updateNavButtons(); }
+        if(target >= 1){ await renderPages(target); updateNavButtons(); }
       });
       $('next-page').addEventListener('click', async ()=>{
-        if (!pdfDoc) return;
+        if(!pdfDoc) return;
         const delta = twoPageMode ? 2 : 1;
         const target = currentPage + delta;
-        if (target <= pdfDoc.numPages) { await renderPages(target); updateNavButtons(); }
+        if(target <= pdfDoc.numPages){ await renderPages(target); updateNavButtons(); }
       });
       $('goto-btn').addEventListener('click', async ()=>{
-        if (!pdfDoc) return;
-        const val = parseInt($('goto-input').value, 10);
-        if (isNaN(val)) return;
+        if(!pdfDoc) return;
+        const val = parseInt($('goto-input').value,10);
+        if(isNaN(val)) return;
         let target = Math.max(1, Math.min(val, pdfDoc.numPages));
-        if (twoPageMode && target % 2 === 0) target -= 1;
+        if(twoPageMode && target % 2 === 0) target -= 1;
         await renderPages(target); updateNavButtons();
       });
     }
 
     // Load PDF.js then init
     (function loadPdfJs(){
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
-      s.onload = initHSK;
-      s.onerror = () => setStatus('Failed to load PDF.js');
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+      s.onload=initHSK;
+      s.onerror=()=>setStatus('Failed to load PDF.js');
       document.head.appendChild(s);
     })();
   </script>
