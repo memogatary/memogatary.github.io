@@ -146,8 +146,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Insert INSIDE the page's main container so it aligns with content width
     const main = document.querySelector("main.container") ||
-                 document.querySelector("main.prose") ||
-                 document.querySelector("main");
+      document.querySelector("main.prose") ||
+      document.querySelector("main");
 
     const holder = document.createElement("div");
     holder.className = "mg-back-holder";
@@ -174,4 +174,73 @@ document.addEventListener("DOMContentLoaded", () => {
       else document.body.prepend(wrap);
     }
   })();
+});
+
+// --- Pillify external media links site-wide (works without Tailwind) ---
+document.addEventListener("DOMContentLoaded", () => {
+  // 1) Inject CSS once
+  if (!document.getElementById("mg-pills-style")) {
+    const style = document.createElement("style");
+    style.id = "mg-pills-style";
+    style.textContent = `
+      .mg-pill {
+        display:inline-flex; align-items:center; gap:.5rem;
+        padding:.375rem .75rem; border-radius:9999px;
+        background:#f1f5f9; color:#334155; text-decoration:none;
+        box-shadow:0 1px 2px rgba(0,0,0,.06); transition:background .2s,color .2s;
+        white-space:nowrap;
+      }
+      .mg-pill:hover { background:#e2e8f0; }
+      html.dark .mg-pill { background:#1f2937; color:#e5e7eb; }
+      html.dark .mg-pill:hover { background:#374151; }
+      .mg-pill-list { list-style:none; margin:.5rem 0 0 0; padding:0;
+                      display:flex; flex-wrap:wrap; gap:.5rem; }
+      .mg-pill-list > li { margin:0; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // 2) Scope to main content only (don’t touch nav/header/footer)
+  const main = document.querySelector("main") || document.body;
+  if (!main) return;
+
+  // 3) What to auto-pillify (you can add to this list anytime)
+  const pillDomains = [
+    /(?:^|\.)youtube\.com$/i, /(?:^|\.)youtu\.be$/i,
+    /(?:^|\.)facebook\.com$/i,
+    /(?:^|\.)open\.spotify\.com$/i,
+    /(?:^|\.)podcasts\.apple\.com$/i
+  ];
+  const isMediaLink = (a) => {
+    try {
+      const u = new URL(a.href, location.origin);
+      const host = u.hostname.replace(/^www\./i, "");
+      return pillDomains.some(rx => rx.test(host));
+    } catch { return false; }
+  };
+
+  // 4) List mode: <ul>…<li><a href>…</a></li>…
+  main.querySelectorAll("ul, ol").forEach(list => {
+    if (list.closest("nav, site-header, site-footer, header, footer")) return;
+
+    const optIn = list.classList.contains("pill-links") || list.dataset.pillify === "all";
+    const anchors = Array.from(list.querySelectorAll(":scope > li > a[href]"));
+    if (!anchors.length) return;
+
+    const allMedia = anchors.every(isMediaLink);
+    if (optIn || allMedia) {
+      list.classList.add("mg-pill-list");
+      anchors.forEach(a => a.classList.add("mg-pill"));
+    }
+  });
+
+  // 5) Standalone anchors inside content blocks
+  main.querySelectorAll("p a[href], div a[href]").forEach(a => {
+    if (a.closest(".mg-pill-list, nav, header, footer, site-header, site-footer")) return;
+    // Opt-in via container: <div class="pill-links">…</div> or data-pillify="all"
+    const container = a.closest(".pill-links,[data-pillify='all']");
+    if (container || isMediaLink(a)) {
+      a.classList.add("mg-pill");
+    }
+  });
 });
