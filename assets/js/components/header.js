@@ -12,7 +12,18 @@ class SiteHeader extends HTMLElement {
     this.innerHTML = `
       <header class="site-header">
         <nav class="nav container" aria-label="Primary">
-          <div class="brand"><a href="/">Memogatary</a></div>
+          <div class="brand"><a
+                              href="/"
+                              aria-label="Memogatary"
+                              class="group mr-6 md:mr-10
+                                    text-2xl md:text-3xl font-extrabold tracking-tight
+                                    text-gray-900 dark:text-gray-100
+                                    bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent
+                                    hover:underline hover:decoration-2 hover:decoration-indigo-500"
+                            >
+                              Memogatary
+                            </a>
+          </div>
           <div class="menu" role="menubar">
             <a role="menuitem" href="/about/">About</a>
 
@@ -157,9 +168,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function exists(url) {
     try {
-      const h = await fetch(url, { method:"HEAD", cache:"no-store" });
+      const h = await fetch(url, { method: "HEAD", cache: "no-store" });
       if (h.ok) return true;
-      const g = await fetch(url, { method:"GET", cache:"no-store" });
+      const g = await fetch(url, { method: "GET", cache: "no-store" });
       return g.ok;
     } catch { return false; }
   }
@@ -179,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const seg = parentPath.split("/").filter(Boolean).pop() || "home";
     const label = seg === "home" ? "Back to Home"
-      : "Back to " + seg.replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+      : "Back to " + seg.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
     const link = document.createElement("a");
     link.href = parentPath;
@@ -192,10 +203,10 @@ document.addEventListener("DOMContentLoaded", () => {
     holder.appendChild(link);
 
     const main = document.querySelector("main.container") ||
-                 document.querySelector("main.prose") ||
-                 document.querySelector("main");
+      document.querySelector("main.prose") ||
+      document.querySelector("main");
     if (main) {
-      if (/\bcontainer\b/.test(main.className||"")) {
+      if (/\bcontainer\b/.test(main.className || "")) {
         main.prepend(holder);
       } else {
         const wrap = document.createElement("div");
