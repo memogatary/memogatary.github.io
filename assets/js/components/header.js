@@ -1,10 +1,38 @@
-
 // Theme loader: apply saved theme as early as possible
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme === 'dark') {
   document.documentElement.classList.add('theme-dark');
 }
 
+// === GA4: inject once into <head> (safe with existing tags) ===
+(function injectGA(id){
+  if (!id) return;
+
+  // If GA was already initialized (e.g., inline tag exists), do nothing
+  if (window.gtag || window.__GA_INJECTED__) return;
+  // If the GA loader script is already present, also do nothing
+  const alreadyHasTag = !!document.querySelector(
+    'script[src^="https://www.googletagmanager.com/gtag/js?id="]'
+  );
+  if (alreadyHasTag) return;
+
+  window.__GA_INJECTED__ = true;
+
+  // Loader
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id);
+  document.head.appendChild(s);
+
+  // Config
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  window.gtag = gtag;
+  gtag('js', new Date());
+  gtag('config', id, {
+    anonymize_ip: true // optional privacy-friendly tweak
+  });
+})('G-675LPJWM38'); // <-- your GA4 Measurement ID
 
 class SiteHeader extends HTMLElement {
   connectedCallback() { this.render(); }
