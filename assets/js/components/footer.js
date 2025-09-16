@@ -1,4 +1,11 @@
+// ==============================
+// Newsletter-enabled footer
+// ==============================
 
+// 1) SET THIS ONCE:
+const NEWSLETTER_ACTION_URL = 'https://script.google.com/macros/s/AKfycbyE4VpzbFWeGKSv4CC8suUB7on7fx7Awq7ZBzAoIXid4I0VAlMVigGTsEd0qYI4wpLM-A/exec';
+
+// 2) Classic footer (unchanged)
 class SiteFooter extends HTMLElement {
   connectedCallback() { this.render(); }
   render() {
@@ -13,8 +20,64 @@ class SiteFooter extends HTMLElement {
   }
 }
 
+// 3) Footer WITH newsletter form (wired to Apps Script)
 class SiteFooterNewsletter extends HTMLElement {
-  connectedCallback() { this.render(); }
+  connectedCallback() {
+    this.render();
+    // Avoid double-binding if this custom element is reconnected
+    if (this.__wired) return;
+    this.__wired = true;
+
+    const form = this.querySelector('form.newsletter');
+    const btn  = form.querySelector('button[type="submit"]');
+    const msg  = this.querySelector('#nl-msg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = form.email.value.trim().toLowerCase();
+      const name  = (form.name?.value || '').trim();
+
+      if (!email) {
+        msg.textContent = 'Please enter your email.';
+        msg.dataset.state = 'error';
+        return;
+      }
+
+      // UI: loading
+      btn.disabled = true;
+      btn.dataset.loading = '1';
+      msg.textContent = 'Submitting…';
+      msg.dataset.state = 'pending';
+
+      try {
+        const res = await fetch(NEWSLETTER_ACTION_URL, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ email, name })
+        });
+
+        // Apps Script returns JSON for doPost; if deployment is correct, this will parse fine
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.ok) {
+          msg.textContent = data.message || 'Subscribed! Please check your inbox.';
+          msg.dataset.state = 'ok';
+          form.reset();
+        } else {
+          // Show helpful message if we can
+          msg.textContent = data.error || `Something went wrong (HTTP ${res.status}).`;
+          msg.dataset.state = 'error';
+        }
+      } catch (err) {
+        msg.textContent = 'Network error. Please try again.';
+        msg.dataset.state = 'error';
+      } finally {
+        btn.disabled = false;
+        btn.dataset.loading = '';
+      }
+    });
+  }
+
   render() {
     const year = new Date().getFullYear();
     this.innerHTML = `
@@ -22,13 +85,20 @@ class SiteFooterNewsletter extends HTMLElement {
         <div class="container row two">
           <div>
             <strong>Stay in the loop</strong>
-            <p class="muted">No spam. Occasional updates from the lab & language desk.</p>
-            <form class="newsletter" action="#" method="post" onsubmit="event.preventDefault(); alert('This is a placeholder. Hook up to Google Apps Script when ready.');">
-              <label class="sr-only" for="email">Email</label>
-              <input id="email" name="email" type="email" placeholder="you@example.com" required>
+            <p class="muted">No spam—occasional updates from the lab & language desk.</p>
+
+            <form class="newsletter" novalidate>
+              <label class="sr-only" for="nl-name">Name</label>
+              <input id="nl-name" name="name" type="text" placeholder="Your name" />
+
+              <label class="sr-only" for="nl-email">Email</label>
+              <input id="nl-email" name="email" type="email" placeholder="you@example.com" required />
+
               <button type="submit">Subscribe</button>
+              <p id="nl-msg" class="nl-msg" aria-live="polite"></p>
             </form>
           </div>
+
           <div style="align-self:end; text-align:right;">
             <div>© ${year} Memogatary</div>
             <div><a href="/about/">About</a> · <a href="/contact/">Contact</a></div>
