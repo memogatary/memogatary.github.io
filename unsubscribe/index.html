@@ -5,47 +5,62 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Unsubscribe</title>
     <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px; line-height: 1.5; }
-      code { background: #f5f5f5; padding: 2px 4px; border-radius: 4px; }
-      .url { word-break: break-all; }
-      .btn { display:inline-block; padding:10px 14px; border:1px solid #111; border-radius:8px; text-decoration:none; }
-      .muted { color:#6b7280; font-size:14px; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px; line-height: 1.55; }
+      .ok { color:#0a7f2e; }
+      .err { color:#b00020; }
+      button { padding:10px 14px; border:1px solid #111; border-radius:8px; background:transparent; cursor:pointer; }
+      code { background:#f5f5f5; padding:2px 4px; border-radius:4px; }
     </style>
   </head>
   <body>
-    <h1>Processing unsubscribe…</h1>
-    <p class="muted">If nothing happens automatically, click the button below.</p>
-    <p><a id="manual" class="btn" href="#" rel="noopener">Unsubscribe now</a></p>
-    <p class="muted">Final URL (copy & paste if needed):</p>
-    <p id="final" class="url"></p>
-    <p class="muted">Need to debug? <a id="diag" target="_blank" rel="noopener">Open diagnostics</a></p>
+    <h1>Unsubscribe</h1>
+    <p id="status">Processing…</p>
+    <p id="fallback" style="display:none">If this page stalls, click <button id="retry">Try again</button> or copy your token: <code id="tok"></code></p>
 
     <script>
       (function () {
-        // 1) Read token from your site URL
-        var token = new URL(location.href).searchParams.get('token');
+        const token = new URL(location.href).searchParams.get('token');
+        const statusEl = document.getElementById('status');
+        const fallback = document.getElementById('fallback');
+        const tokEl    = document.getElementById('tok');
+        const retryBtn = document.getElementById('retry');
+
         if (!token) {
-          document.querySelector('h1').textContent = 'Missing token.';
-          document.getElementById('manual').style.display = 'none';
-          document.getElementById('diag').style.display = 'none';
+          statusEl.textContent = 'Missing token.';
+          statusEl.className = 'err';
           return;
         }
+        tokEl.textContent = token;
 
-        // 2) Build the Apps Script final URLs
-        var base = 'https://script.google.com/macros/s/AKfycbyE4VpzbFWeGKSv4CC8suUB7on7fx7Awq7ZBzAoIXid4I0VAlMVigGTsEd0qYI4wpLM-A/exec';
-        var finalUrl = base + '?action=unsubscribe&token=' + encodeURIComponent(token);
-        var diagUrl  = base + '?action=diag&token=' + encodeURIComponent(token);
+        async function unsubscribe() {
+          statusEl.textContent = 'Processing…';
+          statusEl.className = '';
+          try {
+            const res = await fetch('https://script.google.com/macros/s/AKfycbyE4VpzbFWeGKSv4CC8suUB7on7fx7Awq7ZBzAoIXid4I0VAlMVigGTsEd0qYI4wpLM-A/exec', {
+              method: 'POST',
+              body: JSON.stringify({ action: 'unsubscribe', token })
+            });
+            const text = await res.text();
+            let data = {};
+            try { data = JSON.parse(text); } catch {}
+            if (res.ok && data.ok) {
+              statusEl.textContent = data.message || 'You have been unsubscribed.';
+              statusEl.className = 'ok';
+              fallback.style.display = 'none';
+            } else {
+              statusEl.textContent = (data && data.error) ? data.error : `Request failed (HTTP ${res.status})`;
+              statusEl.className = 'err';
+              fallback.style.display = 'block';
+            }
+          } catch (e) {
+            statusEl.textContent = 'Network error. Please try again.';
+            statusEl.className = 'err';
+            fallback.style.display = 'block';
+          }
+        }
 
-        // 3) Update the page
-        document.getElementById('manual').href = finalUrl;
-        document.getElementById('final').textContent = finalUrl;
-        document.getElementById('diag').href  = diagUrl;
-
-        // 4) Try JS redirect after a tiny delay (lets extensions finish)
-        setTimeout(function () {
-          try { window.location.replace(finalUrl); }
-          catch (e) { /* fallback: user can click the button */ }
-        }, 500);
+        retryBtn.addEventListener('click', unsubscribe);
+        unsubscribe();
       })();
     </script>
   </body>
