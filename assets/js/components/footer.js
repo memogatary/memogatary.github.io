@@ -29,13 +29,13 @@ class SiteFooterNewsletter extends HTMLElement {
     this.__wired = true;
 
     const form = this.querySelector('form.newsletter');
-    const btn  = form.querySelector('button[type="submit"]');
-    const msg  = this.querySelector('#nl-msg');
+    const btn = form.querySelector('button[type="submit"]');
+    const msg = this.querySelector('#nl-msg');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = form.email.value.trim().toLowerCase();
-      const name  = (form.name?.value || '').trim();
+      const name = (form.name?.value || '').trim();
 
       if (!email) {
         msg.textContent = 'Please enter your email.';
@@ -52,7 +52,7 @@ class SiteFooterNewsletter extends HTMLElement {
       try {
         const res = await fetch(NEWSLETTER_ACTION_URL, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          // No custom headers => no preflight. Apps Script will still read e.postData.contents.
           body: JSON.stringify({ email, name })
         });
 
