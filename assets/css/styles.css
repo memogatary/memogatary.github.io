@@ -196,3 +196,35 @@ table { width: 100%; max-width: 100%; overflow-x: auto; display: block; }
 .grid { display:grid; gap:16px; }
 .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 800px) { .grid.cols-3 { grid-template-columns: 1fr; } }
+
+/* Newsletter form styles */
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,1px,1px); white-space:nowrap; border:0; }
+
+form.newsletter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .5rem;
+  max-width: 520px;
+}
+form.newsletter input[type="text"],
+form.newsletter input[type="email"] {
+  grid-column: 1 / -1;
+  padding: .6rem .7rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: .5rem;
+}
+form.newsletter button {
+  justify-self: start;
+  padding: .55rem .9rem;
+  border: 1px solid var(--border, #111);
+  border-radius: .5rem;
+  background: transparent;
+  cursor: pointer;
+}
+form.newsletter button[disabled] { opacity: .6; cursor: default; }
+
+.nl-msg { font-size: .9rem; margin: .25rem 0 0; grid-column: 1 / -1; }
+.nl-msg[data-state="ok"] { color: #0a7f2e; }
+.nl-msg[data-state="error"] { color: #b00020; }
+.nl-msg[data-state="pending"] { color: #6b7280; }
