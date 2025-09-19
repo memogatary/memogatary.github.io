@@ -40,18 +40,21 @@ class SiteHeader extends HTMLElement {
     this.innerHTML = `
       <header class="site-header">
         <nav class="nav container" aria-label="Primary">
-          <div class="brand"><a
-                              href="/"
-                              aria-label="Memogatary"
-                              class="group mr-6 md:mr-10
-                                    text-2xl md:text-3xl font-extrabold tracking-tight
-                                    text-gray-900 dark:text-gray-100
-                                    bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent
-                                    hover:underline hover:decoration-2 hover:decoration-indigo-500"
-                            >
-                              Memogatary
-                            </a>
+          <div class="brand">
+            <a href="/" aria-label="Memogatary — Home" class="brand-link">
+              <img
+                src="/assets/img/memogatary-logo.png"
+                alt="Memogatary"
+                width="160"
+                height="36"
+                class="brand-logo"
+                decoding="async"
+                fetchpriority="high"
+              >
+              <span class="sr-only">Memogatary</span>
+            </a>
           </div>
+
           <div class="menu" role="menubar">
             <a role="menuitem" href="/about/">About</a>
 

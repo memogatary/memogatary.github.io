@@ -63,6 +63,28 @@ body {
 .menu a, .menu button { color: var(--fg); text-decoration:none; background:none; border:none; padding:10px 12px; border-radius: 10px; cursor:pointer; font: inherit; }
 .menu a:hover, .menu button:hover { background: var(--card); }
 
+/* Brand image link */
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;      /* removes stray vertical whitespace */
+  text-decoration: none;
+  color: inherit;      /* keep same behavior as .brand a */
+}
+
+/* Logo sizing (tweak height to taste) */
+.brand-logo {
+  height: 32px;        /* try 28–36px depending on your nav height */
+  width: auto;
+  display: block;      /* avoids inline-gap */
+}
+
+/* Mobile: slightly smaller logo */
+@media (max-width: 720px) {
+  .brand-logo { height: 28px; }
+}
+
+
 /* Mobile safety + responsive fixes */
 html, body { overflow-x: hidden; }
 img, video, canvas, svg { max-width: 100%; height: auto; }
