@@ -85,7 +85,7 @@ class SiteFooterNewsletter extends HTMLElement {
         <div class="container row two">
           <div>
             <strong>Nhận tin mới · Stay in the loop</strong>
-            <p class="muted">Không spam — chỉ dùng cho những cập nhật quan trọng từ Memogatary.</p>
+            <p class="muted">Không spam — chỉ dùng cho những cập nhật quan trọng từ Memogatary</p>
 
             <form class="newsletter" novalidate>
               <label class="sr-only" for="nl-name">Name</label>
@@ -101,7 +101,7 @@ class SiteFooterNewsletter extends HTMLElement {
 
           <div style="align-self:end; text-align:right;">
             <div>© ${year} Memogatary</div>
-            <div><a href="/about/">Giới thiệu · About</a> · <a href="/contact/">Liên hệ · Contact</a></div>
+            <div><a href="/about/">About</a> · <a href="/contact/">Contact</a></div>
           </div>
         </div>
       </footer>`;
