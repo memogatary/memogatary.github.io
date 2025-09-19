@@ -48,7 +48,7 @@ body {
 }
 
 
-/* === Header (fixed) === */
+/* === Header (final mobile-ready) === */
 .site-header {
   position: sticky; top: 0; z-index: 50;
   backdrop-filter: blur(8px);
@@ -56,73 +56,82 @@ body {
   border-bottom: 1px solid color-mix(in srgb, var(--fg) 10%, var(--bg));
 }
 
-/* Make the bar height explicit (no vertical padding). */
+/* Bar height is explicit (no vertical padding). */
 .nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 0 20px;     /* L/R only */
-  height: 60px;        /* <- bar height */
-  flex-wrap: nowrap;   /* don't wrap the brand/menu row */
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 0 20px; height: 60px; flex-wrap: nowrap;
 }
 
-/* Brand: keep it aligned to the bar height */
+/* Brand: logo = bar height */
 .brand { display: flex; align-items: center; height: 100%; }
 .brand-link { display: flex; align-items: center; height: 100%; text-decoration: none; color: inherit; }
-.brand-logo {
-  max-height: 100%;    /* matches .nav height */
-  width: auto;
-  display: block;
-}
+.brand-logo { max-height: 100%; width: auto; display: block; }
 
-/* Menu */
-.menu { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; } /* allow ONLY menu to wrap if needed */
+/* Desktop menu */
+.menu { display: flex; gap: 14px; align-items: center; }
 .menu a, .menu button {
   color: var(--fg); text-decoration: none; background: none; border: none;
   padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit;
 }
 .menu a:hover, .menu button:hover { background: var(--card); }
 
-/* ===== Mobile tweaks ===== */
+/* Dropdowns (desktop hover + mobile via .open) */
+.dropdown { position: relative; }
+.dropdown-panel {
+  position: absolute; top: 100%; left: 0; min-width: 200px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 8px; display: none;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+}
+.dropdown:hover .dropdown-panel,
+.dropdown.open .dropdown-panel { display: block; }
+.dropdown-panel a { display: block; padding: 10px 12px; color: var(--fg); border-radius: 8px; }
+.dropdown-panel a small { display: block; color: var(--muted); font-size: 12px; }
+.dropdown-panel a:hover { background: color-mix(in srgb, var(--fg) 8%, var(--bg)); }
+
+/* Hamburger (hidden on desktop) */
+.nav-toggle { display: none; }
+
+/* ===== Mobile ===== */
 @media (max-width: 720px) {
-  .nav {
-    height: 56px;      /* smaller bar on phones */
-    padding: 0 12px;   /* still no vertical padding */
-    gap: 8px;
+  .nav { height: 56px; padding: 0 12px; gap: 8px; }
+
+  /* show hamburger */
+  .nav-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 10px;
+    border: 1px solid var(--pill-bd); background: var(--pill-bg);
+    color: var(--fg); font-size: 20px; line-height: 1;
   }
-  .menu { gap: 8px; }
-  .menu a, .menu button { padding: 8px 10px; }
-  /* remove this if you had it before: .brand { flex: 1 1 100%; } */
+
+  /* collapse menu by default; open when html.nav-open is set by JS */
+  .menu {
+    position: absolute; left: 0; right: 0; top: 56px;
+    display: none; flex-direction: column; align-items: stretch; gap: 6px;
+    padding: 8px 12px 12px; background: var(--surface-1);
+    border-bottom: 1px solid color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+  html.nav-open .menu { display: flex; }
+
+  .menu a, .menu button { padding: 12px; border-radius: 8px; text-align: left; }
+
+  /* dropdowns flow in the column (tap to open adds .open) */
+  .dropdown { position: static; }
+  .dropdown-panel {
+    position: static; display: none; margin-top: -4px; padding: 6px;
+    border-radius: 10px; border: 1px solid var(--border);
+    box-shadow: none;
+  }
+  .dropdown.open .dropdown-panel { display: block; }
 }
 
-
-
-/* Mobile safety + responsive fixes */
+/* --- Global safe bits you can keep elsewhere --- */
 html, body { overflow-x: hidden; }
 img, video, canvas, svg { max-width: 100%; height: auto; }
 pre { max-width: 100%; overflow: auto; }
 table { width: 100%; max-width: 100%; overflow-x: auto; display: block; }
 
-/* Let nav and menu wrap if space is tight */
-.menu { flex-wrap: wrap; }
 
-/* On small screens, tighten spacing */
-@media (max-width: 720px) {
-  .container { padding: 16px; }                 /* was 24px */
-  .menu { gap: 8px; }
-  .menu a, .menu button { padding: 8px 10px; }
-  .theme-toggle { padding: 6px 10px; gap: 6px; } /* compact pill */
-}
-
-/* Keep dropdowns inside viewport */
-.dropdown-panel {
-  max-width: min(92vw, 320px);
-  overflow-wrap: anywhere;
-}
-.dropdown:last-child .dropdown-panel {
-  right: 0; left: auto;
-}
 
 
 /* Filled pill theme toggle */

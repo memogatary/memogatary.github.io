@@ -45,8 +45,6 @@ class SiteHeader extends HTMLElement {
               <img
                 src="/assets/img/memogatary-logo.png"
                 alt="Memogatary"
-                width="160"
-                height="36"
                 class="brand-logo"
                 decoding="async"
                 fetchpriority="high"
@@ -55,11 +53,15 @@ class SiteHeader extends HTMLElement {
             </a>
           </div>
 
-          <div class="menu" role="menubar">
+          <!-- Mobile hamburger -->
+          <button class="nav-toggle" id="nav-toggle" aria-label="Open menu"
+                  aria-expanded="false" aria-controls="primary-menu">☰</button>
+
+          <div class="menu" id="primary-menu" role="menubar">
             <a role="menuitem" href="/about/">About</a>
 
             <div class="dropdown" role="none">
-              <button aria-haspopup="true" aria-expanded="false">Blog ▾</button>
+              <button class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">Blog ▾</button>
               <div class="dropdown-panel" role="menu">
                 <a role="menuitem" href="/blog/vi/"><strong>Vietnamese</strong><small>Bài viết tiếng Việt</small></a>
                 <a role="menuitem" href="/blog/en/"><strong>English</strong><small>Posts in English</small></a>
@@ -68,7 +70,7 @@ class SiteHeader extends HTMLElement {
             </div>
 
             <div class="dropdown" role="none">
-              <button aria-haspopup="true" aria-expanded="false">Languages ▾</button>
+              <button class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">Languages ▾</button>
               <div class="dropdown-panel" role="menu">
                 <a role="menuitem" href="/languages/chinese/"><strong>Chinese</strong><small>Vocabulary, Notes, FlashCards</small></a>
               </div>
@@ -84,6 +86,8 @@ class SiteHeader extends HTMLElement {
           </div>
         </nav>
       </header>`;
+
+    // === Theme toggle ===
     const btn = this.querySelector('#theme-toggle');
     const setIcon = () => {
       const dark = document.documentElement.classList.contains('theme-dark');
@@ -97,9 +101,32 @@ class SiteHeader extends HTMLElement {
       setIcon();
     });
     setIcon();
+
+    // === Mobile menu toggle ===
+    const navToggle = this.querySelector('#nav-toggle');
+    const menu = this.querySelector('#primary-menu');
+    navToggle.addEventListener('click', () => {
+      const open = navToggle.getAttribute('aria-expanded') === 'true';
+      navToggle.setAttribute('aria-expanded', String(!open));
+      document.documentElement.classList.toggle('nav-open', !open);
+    });
+
+    // === Dropdown toggle for mobile (tap) ===
+    this.querySelectorAll('.dropdown-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // Only intercept clicks on small screens
+        if (window.innerWidth <= 720) {
+          e.preventDefault();
+          const dd = btn.closest('.dropdown');
+          const open = dd.classList.toggle('open');
+          btn.setAttribute('aria-expanded', String(open));
+        }
+      });
+    });
   }
 }
 customElements.define('site-header', SiteHeader);
+
 
 // ========== THEME DETECTOR (adds/removes html.mg-dark) ==========
 (function () {
