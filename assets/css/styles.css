@@ -48,45 +48,54 @@ body {
 }
 
 
-/* Header */
+/* === Header (fixed) === */
 .site-header {
   position: sticky; top: 0; z-index: 50;
   backdrop-filter: blur(8px);
-  background: var(--surface-1); /* subtle tinted surface */
+  background: var(--surface-1);
   border-bottom: 1px solid color-mix(in srgb, var(--fg) 10%, var(--bg));
 }
 
+/* Make the bar height explicit (no vertical padding). */
 .nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 20px;   /* no vertical padding, only left/right */
-  height: 60px;      /* fixed nav height */
+  padding: 0 20px;     /* L/R only */
+  height: 60px;        /* <- bar height */
+  flex-wrap: nowrap;   /* don't wrap the brand/menu row */
 }
 
-.brand-link {
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
-
+/* Brand: keep it aligned to the bar height */
+.brand { display: flex; align-items: center; height: 100%; }
+.brand-link { display: flex; align-items: center; height: 100%; text-decoration: none; color: inherit; }
 .brand-logo {
-  max-height: 100%;
+  max-height: 100%;    /* matches .nav height */
   width: auto;
   display: block;
 }
 
-.brand { font-weight: 700; letter-spacing: 0.3px; }
-.brand a { color: var(--fg); text-decoration: none; }
-.menu { display:flex; gap: 14px; align-items:center; }
-.menu a, .menu button { color: var(--fg); text-decoration:none; background:none; border:none; padding:10px 12px; border-radius: 10px; cursor:pointer; font: inherit; }
+/* Menu */
+.menu { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; } /* allow ONLY menu to wrap if needed */
+.menu a, .menu button {
+  color: var(--fg); text-decoration: none; background: none; border: none;
+  padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit;
+}
 .menu a:hover, .menu button:hover { background: var(--card); }
 
-/* Mobile: slightly smaller logo */
+/* ===== Mobile tweaks ===== */
 @media (max-width: 720px) {
-  .brand-logo { height: 28px; }
+  .nav {
+    height: 56px;      /* smaller bar on phones */
+    padding: 0 12px;   /* still no vertical padding */
+    gap: 8px;
+  }
+  .menu { gap: 8px; }
+  .menu a, .menu button { padding: 8px 10px; }
+  /* remove this if you had it before: .brand { flex: 1 1 100%; } */
 }
+
 
 
 /* Mobile safety + responsive fixes */
@@ -96,16 +105,13 @@ pre { max-width: 100%; overflow: auto; }
 table { width: 100%; max-width: 100%; overflow-x: auto; display: block; }
 
 /* Let nav and menu wrap if space is tight */
-.nav { flex-wrap: wrap; }
 .menu { flex-wrap: wrap; }
 
 /* On small screens, tighten spacing */
 @media (max-width: 720px) {
   .container { padding: 16px; }                 /* was 24px */
-  .nav { gap: 8px; padding: 10px 12px; }
   .menu { gap: 8px; }
   .menu a, .menu button { padding: 8px 10px; }
-  .brand { flex: 1 1 100%; }                     /* brand gets its own row */
   .theme-toggle { padding: 6px 10px; gap: 6px; } /* compact pill */
 }
 
