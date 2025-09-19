@@ -65,16 +65,15 @@ body {
 
 /* Brand image link */
 .brand-link {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  line-height: 0;      /* removes stray vertical whitespace */
-  text-decoration: none;
-  color: inherit;      /* keep same behavior as .brand a */
+  height: 100%;       /* match the nav bar height */
 }
 
 /* Logo sizing (tweak height to taste) */
 .brand-logo {
-  height: 60px;        /* try 28–36px depending on your nav height */
+  height: 100%;
+  max-height: 100;
   width: auto;
   display: block;      /* avoids inline-gap */
 }
