@@ -84,24 +84,24 @@ class SiteFooterNewsletter extends HTMLElement {
       <footer class="site-footer">
         <div class="container row two">
           <div>
-            <strong>Stay in the loop</strong>
-            <p class="muted">No spam—occasional updates from the lab & language desk.</p>
+            <strong>Nhận tin mới · Stay in the loop</strong>
+            <p class="muted">Không spam — chỉ dùng cho những cập nhật quan trọng từ Memogatary.</p>
 
             <form class="newsletter" novalidate>
               <label class="sr-only" for="nl-name">Name</label>
-              <input id="nl-name" name="name" type="text" placeholder="Your name" />
+              <input id="nl-name" name="name" type="text" placeholder="Tên / Name" />
 
               <label class="sr-only" for="nl-email">Email</label>
-              <input id="nl-email" name="email" type="email" placeholder="you@example.com" required />
+              <input id="nl-email" name="email" type="email" placeholder="email@example.com" required />
 
-              <button type="submit">Subscribe</button>
+              <button type="submit">Đăng ký · Subscribe</button>
               <p id="nl-msg" class="nl-msg" aria-live="polite"></p>
             </form>
           </div>
 
           <div style="align-self:end; text-align:right;">
             <div>© ${year} Memogatary</div>
-            <div><a href="/about/">About</a> · <a href="/contact/">Contact</a></div>
+            <div><a href="/about/">Giới thiệu · About</a> · <a href="/contact/">Liên hệ · Contact</a></div>
           </div>
         </div>
       </footer>`;
