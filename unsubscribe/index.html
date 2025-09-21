@@ -1,81 +1,118 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Unsubscribe</title>
-    <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px; line-height: 1.55; }
-      .ok { color:#0a7f2e; }
-      .err { color:#b00020; }
-      button { padding:10px 14px; border:1px solid #111; border-radius:8px; background:transparent; cursor:pointer; }
-      code { background:#f5f5f5; padding:2px 4px; border-radius:4px; }
-      .btn {
-        display:inline-block; margin-top:12px; padding:8px 16px;
-        border-radius:8px; background:#20633a; color:#fff;
-        text-decoration:none; font-weight:600;
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Unsubscribe</title>
+  <!-- add your site styles + component script -->
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+  <script type="module" src="/assets/js/components/footer.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      padding: 24px;
+      line-height: 1.55;
+    }
+
+    .ok {
+      color: #0a7f2e;
+    }
+
+    .err {
+      color: #b00020;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: 1px solid #111;
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    code {
+      background: #f5f5f5;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: #20633a;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .btn:hover {
+      filter: brightness(1.05);
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Unsubscribe</h1>
+  <div id="status">Processing…</div>
+  <p id="fallback" style="display:none">
+    If this page stalls, click <button id="retry">Try again</button> or copy your token: <code id="tok"></code>
+  </p>
+
+  <script>
+    (function () {
+      const token = new URL(location.href).searchParams.get('token');
+      const statusEl = document.getElementById('status');
+      const fallback = document.getElementById('fallback');
+      const tokEl = document.getElementById('tok');
+      const retryBtn = document.getElementById('retry');
+
+      if (!token) {
+        statusEl.textContent = 'Missing token.';
+        statusEl.className = 'err';
+        return;
       }
-      .btn:hover { filter:brightness(1.05); }
-    </style>
-  </head>
-  <body>
-    <h1>Unsubscribe</h1>
-    <div id="status">Processing…</div>
-    <p id="fallback" style="display:none">
-      If this page stalls, click <button id="retry">Try again</button> or copy your token: <code id="tok"></code>
-    </p>
+      tokEl.textContent = token;
 
-    <script>
-      (function () {
-        const token = new URL(location.href).searchParams.get('token');
-        const statusEl = document.getElementById('status');
-        const fallback = document.getElementById('fallback');
-        const tokEl    = document.getElementById('tok');
-        const retryBtn = document.getElementById('retry');
+      async function unsubscribe() {
+        statusEl.textContent = 'Processing…';
+        statusEl.className = '';
+        try {
+          const res = await fetch('https://script.google.com/macros/s/AKfycbyE4VpzbFWeGKSv4CC8suUB7on7fx7Awq7ZBzAoIXid4I0VAlMVigGTsEd0qYI4wpLM-A/exec', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'unsubscribe', token })
+          });
+          const text = await res.text();
+          let data = {};
+          try { data = JSON.parse(text); } catch { }
 
-        if (!token) {
-          statusEl.textContent = 'Missing token.';
-          statusEl.className = 'err';
-          return;
-        }
-        tokEl.textContent = token;
-
-        async function unsubscribe() {
-          statusEl.textContent = 'Processing…';
-          statusEl.className = '';
-          try {
-            const res = await fetch('https://script.google.com/macros/s/AKfycbyE4VpzbFWeGKSv4CC8suUB7on7fx7Awq7ZBzAoIXid4I0VAlMVigGTsEd0qYI4wpLM-A/exec', {
-              method: 'POST',
-              body: JSON.stringify({ action: 'unsubscribe', token })
-            });
-            const text = await res.text();
-            let data = {};
-            try { data = JSON.parse(text); } catch {}
-
-            if (res.ok && data.ok) {
-              // show message + home link if available
-              statusEl.className = 'ok';
-              statusEl.innerHTML = `
+          if (res.ok && data.ok) {
+            // show message + home link if available
+            statusEl.className = 'ok';
+            statusEl.innerHTML = `
                 <p>${data.message || 'You have been unsubscribed.'}</p>
                 ${data.homeLink ? `<p><a href="${data.homeLink}" class="btn">${data.homeLabel || 'Return to Memogatary Home'}</a></p>` : ''}
               `;
-              fallback.style.display = 'none';
-            } else {
-              statusEl.textContent = (data && data.error) ? data.error : `Request failed (HTTP ${res.status})`;
-              statusEl.className = 'err';
-              fallback.style.display = 'block';
-            }
-          } catch (e) {
-            statusEl.textContent = 'Network error. Please try again.';
+            fallback.style.display = 'none';
+          } else {
+            statusEl.textContent = (data && data.error) ? data.error : `Request failed (HTTP ${res.status})`;
             statusEl.className = 'err';
             fallback.style.display = 'block';
           }
+        } catch (e) {
+          statusEl.textContent = 'Network error. Please try again.';
+          statusEl.className = 'err';
+          fallback.style.display = 'block';
         }
+      }
 
-        retryBtn.addEventListener('click', unsubscribe);
-        unsubscribe();
-      })();
-    </script>
-    <site-footer-newsletter></site-footer-newsletter>
-  </body>
+      retryBtn.addEventListener('click', unsubscribe);
+      unsubscribe();
+    })();
+  </script>
+  <site-footer-newsletter></site-footer-newsletter>
+</body>
+
 </html>
