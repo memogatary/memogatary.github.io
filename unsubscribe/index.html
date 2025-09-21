@@ -10,12 +10,20 @@
       .err { color:#b00020; }
       button { padding:10px 14px; border:1px solid #111; border-radius:8px; background:transparent; cursor:pointer; }
       code { background:#f5f5f5; padding:2px 4px; border-radius:4px; }
+      .btn {
+        display:inline-block; margin-top:12px; padding:8px 16px;
+        border-radius:8px; background:#20633a; color:#fff;
+        text-decoration:none; font-weight:600;
+      }
+      .btn:hover { filter:brightness(1.05); }
     </style>
   </head>
   <body>
     <h1>Unsubscribe</h1>
-    <p id="status">Processing…</p>
-    <p id="fallback" style="display:none">If this page stalls, click <button id="retry">Try again</button> or copy your token: <code id="tok"></code></p>
+    <div id="status">Processing…</div>
+    <p id="fallback" style="display:none">
+      If this page stalls, click <button id="retry">Try again</button> or copy your token: <code id="tok"></code>
+    </p>
 
     <script>
       (function () {
@@ -43,9 +51,14 @@
             const text = await res.text();
             let data = {};
             try { data = JSON.parse(text); } catch {}
+
             if (res.ok && data.ok) {
-              statusEl.textContent = data.message || 'You have been unsubscribed.';
+              // show message + home link if available
               statusEl.className = 'ok';
+              statusEl.innerHTML = `
+                <p>${data.message || 'You have been unsubscribed.'}</p>
+                ${data.homeLink ? `<p><a href="${data.homeLink}" class="btn">${data.homeLabel || 'Return to Memogatary Home'}</a></p>` : ''}
+              `;
               fallback.style.display = 'none';
             } else {
               statusEl.textContent = (data && data.error) ? data.error : `Request failed (HTTP ${res.status})`;
