@@ -92,7 +92,7 @@
             // show message + home link if available
             statusEl.className = 'ok';
             statusEl.innerHTML = `
-                <p>${data.message || 'You have been unsubscribed.'}</p>
+                <p>${data.message || 'You have been unsubscribed.'}</p><br><br>
                 ${data.homeLink ? `<p><a href="${data.homeLink}" class="btn">${data.homeLabel || 'Return to Memogatary Home'}</a></p>` : ''}
               `;
             fallback.style.display = 'none';
