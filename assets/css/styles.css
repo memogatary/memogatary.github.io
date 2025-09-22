@@ -352,8 +352,14 @@ table {
 }
 
 .site-footer a {
-  color: var(--fg);
-  text-decoration: none;
+  color: var(--muted);        /* softer than body text */
+  font-weight: 500;           /* semi-bold so links stand out a bit */
+  text-decoration: none;      /* keep clean */
+  transition: color 0.2s ease;
+}
+
+.site-footer a:hover {
+  color: var(--accent);       /* brighter accent color on hover */
 }
 
 /* Footer grid fix for mobile */
