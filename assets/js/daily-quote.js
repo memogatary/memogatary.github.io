@@ -61,13 +61,13 @@ async function showDailyQuote() {
     if (mount) {
       mount.innerHTML = `
         <div class="card" style="padding:1.2rem; text-align:center;">
-          <div style="text-align:right; font-size:0.85rem; margin-bottom:0.6rem;">
+          <div style="text-align:left; font-size:0.85rem; margin-bottom:0.6rem;">
             Today's motivational quote:
           </div>
           <div style="font-weight:700; font-size:1.3rem; margin-bottom:0.4rem;">
             “${escapeHtml(text)}”
           </div>
-          <div style="text-align:left; font-size:0.9rem; font-style:italic;">
+          <div style="text-align:right; font-size:0.9rem; font-style:italic;">
             — ${escapeHtml(author || "Unknown")}
           </div>
         </div>
