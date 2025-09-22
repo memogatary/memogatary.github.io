@@ -1,45 +1,61 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Unsubscribe</title>
-  <!-- add your site styles + component script -->
+
+  <!-- your site styles + footer component -->
   <link rel="stylesheet" href="/assets/css/styles.css" />
   <script type="module" src="/assets/js/components/footer.js"></script>
+
   <style>
+    :root {
+      --gap-lg: 20px;
+      --gap-md: 14px;
+    }
+
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       padding: 24px;
       line-height: 1.55;
     }
 
-    .ok {
-      color: #0a7f2e;
+    /* Center the primary area and stack with nice gaps */
+    .unsub-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .stack > * + * { margin-top: var(--gap-md); }
+
+    /* Headline + messages centered */
+    h1.unsub-title {
+      text-align: center;
+      margin: 0 0 var(--gap-lg);
+    }
+    #status {
+      text-align: center;
+      font-size: 1.05rem;
+      min-height: 2.5rem; /* reserve space so layout doesn’t jump */
+    }
+    #fallback {
+      text-align: center;
     }
 
-    .err {
-      color: #b00020;
+    /* Success / error colors */
+    .ok  { color: #0a7f2e; }
+    .err { color: #b00020; }
+
+    /* Right-aligned home link, with breathing room from the centered text */
+    .home-link {
+      text-align: right;
+      margin-top: calc(var(--gap-lg) + 6px);
+      margin-bottom: var(--gap-lg);
     }
 
-    button {
-      padding: 10px 14px;
-      border: 1px solid #111;
-      border-radius: 8px;
-      background: transparent;
-      cursor: pointer;
-    }
-
-    code {
-      background: #f5f5f5;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-
+    /* Buttons */
     .btn {
       display: inline-block;
-      margin-top: 12px;
       padding: 8px 16px;
       border-radius: 8px;
       background: #20633a;
@@ -47,64 +63,100 @@
       text-decoration: none;
       font-weight: 600;
     }
+    .btn:hover { filter: brightness(1.05); }
 
-    .btn:hover {
-      filter: brightness(1.05);
+    /* Misc */
+    button {
+      padding: 10px 14px;
+      border: 1px solid #111;
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+    }
+    code {
+      background: #f5f5f5;
+      padding: 2px 4px;
+      border-radius: 4px;
     }
   </style>
 </head>
-
 <body>
-  <h1>Unsubscribe</h1>
-  <div id="status">Processing…<br><br></div>
-  <p id="fallback" style="display:none">
-    If this page stalls, click <button id="retry">Try again</button> or copy your token: <code id="tok"></code>
-  </p>
+
+  <div class="unsub-wrap stack">
+    <h1 class="unsub-title">Unsubscribe</h1>
+
+    <!-- centered status text goes here -->
+    <div id="status">Processing…</div>
+
+    <!-- optional helper (centered); shown on errors -->
+    <p id="fallback" style="display:none">
+      If this page stalls, click <button id="retry">Try again</button>
+      or copy your token: <code id="tok"></code>
+    </p>
+
+    <!-- right-aligned home link gets injected here after success -->
+    <div id="home-link" class="home-link"></div>
+  </div>
 
   <script>
     (function () {
-      const token = new URL(location.href).searchParams.get('token');
+      const token    = new URL(location.href).searchParams.get('token');
       const statusEl = document.getElementById('status');
       const fallback = document.getElementById('fallback');
-      const tokEl = document.getElementById('tok');
+      const tokEl    = document.getElementById('tok');
       const retryBtn = document.getElementById('retry');
+      const homeEl   = document.getElementById('home-link');
+
+      function setProcessing() {
+        statusEl.className = '';
+        statusEl.textContent = 'Processing…';
+        fallback.style.display = 'none';
+        homeEl.innerHTML = '';
+      }
+
+      function setSuccess(message, homeLink, homeLabel) {
+        statusEl.className = 'ok';
+        statusEl.textContent = message || 'You have been unsubscribed.';
+        fallback.style.display = 'none';
+        // Right-align the home button below, with spacing (handled by CSS)
+        if (homeLink) {
+          homeEl.innerHTML = `<a href="${homeLink}" class="btn">${homeLabel || 'Return to Memogatary Home'}</a>`;
+        } else {
+          homeEl.innerHTML = '';
+        }
+      }
+
+      function setError(msg) {
+        statusEl.className = 'err';
+        statusEl.textContent = msg;
+        fallback.style.display = 'block';
+        homeEl.innerHTML = '';
+      }
 
       if (!token) {
-        statusEl.textContent = 'Missing token.';
-        statusEl.className = 'err';
+        setError('Missing token.');
         return;
       }
       tokEl.textContent = token;
 
       async function unsubscribe() {
-        statusEl.textContent = 'Processing…';
-        statusEl.className = '';
+        setProcessing();
         try {
-          const res = await fetch('https://script.google.com/macros/s/AKfycbyE4VpzbFWeGKSv4CC8suUB7on7fx7Awq7ZBzAoIXid4I0VAlMVigGTsEd0qYI4wpLM-A/exec', {
-            method: 'POST',
-            body: JSON.stringify({ action: 'unsubscribe', token })
-          });
+          const res = await fetch(
+            'https://script.google.com/macros/s/AKfycbyE4VpzbFWeGKSv4CC8suUB7on7fx7Awq7ZBzAoIXid4I0VAlMVigGTsEd0qYI4wpLM-A/exec',
+            { method: 'POST', body: JSON.stringify({ action: 'unsubscribe', token }) }
+          );
           const text = await res.text();
           let data = {};
-          try { data = JSON.parse(text); } catch { }
+          try { data = JSON.parse(text); } catch {}
 
           if (res.ok && data.ok) {
-            // show message + home link if available
-            statusEl.className = 'ok';
-            statusEl.innerHTML = `
-                <p>${data.message || 'You have been unsubscribed.'}</p><br><br>
-                ${data.homeLink ? `<p><a href="${data.homeLink}" class="btn">${data.homeLabel || 'Return to Memogatary Home'}</a></p>` : ''}
-              `;
-            fallback.style.display = 'none';
+            setSuccess(data.message, data.homeLink, data.homeLabel);
           } else {
-            statusEl.textContent = (data && data.error) ? data.error : `Request failed (HTTP ${res.status})`;
-            statusEl.className = 'err';
-            fallback.style.display = 'block';
+            setError((data && data.error) ? data.error : `Request failed (HTTP ${res.status})`);
           }
         } catch (e) {
-          statusEl.textContent = 'Network error. Please try again.';
-          statusEl.className = 'err';
-          fallback.style.display = 'block';
+          setError('Network error. Please try again.');
         }
       }
 
@@ -112,7 +164,7 @@
       unsubscribe();
     })();
   </script>
+
   <site-footer-newsletter></site-footer-newsletter>
 </body>
-
 </html>
