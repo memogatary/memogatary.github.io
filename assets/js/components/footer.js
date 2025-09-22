@@ -107,7 +107,7 @@ class SiteFooterNewsletter extends HTMLElement {
             </form>
           </div>
 
-          <div style="align-self:end; text-align:right;">
+          <div style="align-self:center; text-align:right;">
             <div style="font-style:italic; color:var(--muted); margin-bottom:.35rem;">
               ${MOTTO}
             </div>
