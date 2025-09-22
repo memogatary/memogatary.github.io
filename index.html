@@ -1,21 +1,27 @@
-
 <!doctype html>
 <html lang="en">
 <head>
   <title>Memogatary</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="/favicon.png" type="image/png" />
+  <link rel="icon" href="/favicon.png" type="image/png" />
   <link rel="stylesheet" href="/assets/css/styles.css" />
   <script type="module" src="/assets/js/components/header.js"></script>
   <script type="module" src="/assets/js/components/footer.js"></script>
+  <!-- daily-quote loader -->
+  <script type="module" src="/assets/js/daily-quote.js"></script>
 </head>
 <body>
   <site-header></site-header>
   <main class="container prose">
-    <div class="card">
-      <h2>“Small steps, big journeys. Keep learning, keep moving.”</h2>
-    </div>
+
+    <!-- Fixed identity phrase -->
+    <p style="font-style: italic; font-size: 0.95rem; margin: 1.5rem 0; text-align: center;">
+      “Small steps, big journeys. Keep learning, keep moving.”
+    </p>
+
+    <!-- Daily motivational quote card -->
+    <div id="daily-quote"></div>
 
     <h2>Fresh on the site</h2>
     <div class="grid cols-3">
@@ -27,4 +33,3 @@
   <site-footer-newsletter></site-footer-newsletter>
 </body>
 </html>
-
