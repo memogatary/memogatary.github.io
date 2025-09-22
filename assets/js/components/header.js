@@ -5,7 +5,7 @@ if (savedTheme === 'dark') {
 }
 
 // === GA4: inject once into <head> (safe with existing tags) ===
-(function injectGA(id){
+(function injectGA(id) {
   if (!id) return;
 
   // If GA was already initialized (e.g., inline tag exists), do nothing
@@ -26,7 +26,7 @@ if (savedTheme === 'dark') {
 
   // Config
   window.dataLayer = window.dataLayer || [];
-  function gtag(){ dataLayer.push(arguments); }
+  function gtag() { dataLayer.push(arguments); }
   window.gtag = gtag;
   gtag('js', new Date());
   gtag('config', id, {
@@ -112,17 +112,52 @@ class SiteHeader extends HTMLElement {
     });
 
     // === Dropdown toggle for mobile (tap) ===
-    this.querySelectorAll('.dropdown-toggle').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        // Only intercept clicks on small screens
-        if (window.innerWidth <= 720) {
-          e.preventDefault();
-          const dd = btn.closest('.dropdown');
-          const open = dd.classList.toggle('open');
-          btn.setAttribute('aria-expanded', String(open));
-        }
+    (() => {
+      const isTouch = window.matchMedia && window.matchMedia('(hover: none)').matches;
+      const dropdowns = this.querySelectorAll('.dropdown');
+
+      const closeAll = () => dropdowns.forEach(d => {
+        d.classList.remove('open');
+        const t = d.querySelector('.dropdown-toggle');
+        if (t) t.setAttribute('aria-expanded', 'false');
       });
-    });
+
+      dropdowns.forEach(dd => {
+        const btn = dd.querySelector('.dropdown-toggle');
+        const panel = dd.querySelector('.dropdown-panel');
+        if (!btn || !panel) return;
+
+        // Mobile/touch: first tap opens, second tap (or outside) closes
+        btn.addEventListener('click', (e) => {
+          if (isTouch || window.innerWidth <= 720) {
+            e.preventDefault();
+            const opening = !dd.classList.contains('open');
+            closeAll();
+            if (opening) {
+              dd.classList.add('open');
+              btn.setAttribute('aria-expanded', 'true');
+            }
+          }
+        });
+
+        // Follow a link -> close menu on mobile
+        panel.querySelectorAll('a[href]').forEach(a => {
+          a.addEventListener('click', () => {
+            if (isTouch || window.innerWidth <= 720) closeAll();
+          });
+        });
+      });
+
+      // Click/tap outside -> close
+      document.addEventListener('click', (e) => {
+        if (!this.contains(e.target)) closeAll();
+      });
+
+      // Esc to close
+      this.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeAll();
+      });
+    })();
   }
 }
 customElements.define('site-header', SiteHeader);
