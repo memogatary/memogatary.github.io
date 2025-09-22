@@ -2,10 +2,13 @@
 // Newsletter-enabled footer
 // ==============================
 
+// 0) Shared motto (brand signature)
+const MOTTO = '“Small steps, big journeys. Keep learning, keep moving.”';
+
 // 1) SET THIS ONCE:
 const NEWSLETTER_ACTION_URL = 'https://script.google.com/macros/s/AKfycbyE4VpzbFWeGKSv4CC8suUB7on7fx7Awq7ZBzAoIXid4I0VAlMVigGTsEd0qYI4wpLM-A/exec';
 
-// 2) Classic footer (unchanged)
+// 2) Classic footer
 class SiteFooter extends HTMLElement {
   connectedCallback() { this.render(); }
   render() {
@@ -14,7 +17,12 @@ class SiteFooter extends HTMLElement {
       <footer class="site-footer">
         <div class="container row">
           <div>© ${year} Memogatary · <a href="/about/">About</a></div>
-          <div>Living fully through curiosity, learning, and stories. <a href="/contact/">Say hi</a>.</div>
+          <div>
+            <span style="font-style:italic; color:var(--muted);">
+              ${MOTTO}
+            </span>
+            &nbsp;· <a href="/contact/">Say hi</a>.
+          </div>
         </div>
       </footer>`;
   }
@@ -100,6 +108,9 @@ class SiteFooterNewsletter extends HTMLElement {
           </div>
 
           <div style="align-self:end; text-align:right;">
+            <div style="font-style:italic; color:var(--muted); margin-bottom:.35rem;">
+              ${MOTTO}
+            </div>
             <div>© ${year} Memogatary</div>
             <div><a href="/about/">About</a> · <a href="/contact/">Contact</a></div>
           </div>
