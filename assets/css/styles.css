@@ -511,7 +511,7 @@ form.newsletter button[type="submit"],
   border-radius: .5rem;
   border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
   background: var(--accent);
-  color: #0b0b0d;
+  color: #fff;
   /* readable on your blue accent in light & dark */
   font-weight: 600;
   cursor: pointer;
