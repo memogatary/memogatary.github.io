@@ -114,7 +114,7 @@ class SiteFooterNewsletter extends HTMLElement {
             <div>© ${year} Memogatary</div>
             <div>
             <a href="/about/">About</a> · <a href="/contact/">Contact</a>
-            <!-- · <a href="https://ko-fi.com/memogatary" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600;">Buy me a coffee</a> -->
+            <a href="https://ko-fi.com/memogatary" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600;">Buy me a coffee!</a>
             </div>
           </div>
         </div>
